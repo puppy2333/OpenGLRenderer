@@ -16,16 +16,6 @@ struct Material {
 
 uniform Material material;
 
-struct Light {
-    vec3 position;
-    
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-
-uniform Light light;
-
 void main()
 {
     vec4 diffuse_color = texture(material.diffuse, TextCoord);

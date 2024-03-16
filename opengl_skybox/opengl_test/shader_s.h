@@ -15,6 +15,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "const.h"
+
 class Shader
 {
 public:
@@ -120,6 +122,16 @@ public:
     void setMat4f(const std::string &name, glm::mat4 &matrix) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
+    }
+    // ------------------------------------------------------------------------
+    void setMVP(glm::mat4 &model, glm::mat4 &view)
+    {
+        glm::mat4 projMat = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
+        
+        use();
+        setMat4f("model", model);
+        setMat4f("view", view);
+        setMat4f("projection", projMat);
     }
 
 private:

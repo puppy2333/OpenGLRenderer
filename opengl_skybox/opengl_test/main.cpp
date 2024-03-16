@@ -21,13 +21,11 @@
 #include "camera.h"
 #include "shader_s.h"
 #include "objects.h"
+#include "light.h"
+#include "const.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
 // Camera
 Camera ourcamera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -46,8 +44,8 @@ int main()
 {
     // glfw: initialize and configure
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
@@ -79,9 +77,15 @@ int main()
     // build and compile our shader program
     std::cout << std::filesystem::current_path();
     Shader cubeshader(prefix + "shader/cubeshader.vs", prefix + "shader/cubeshader.fs");
+    Shader floorshader(prefix + "shader/floorshader.vs", prefix + "shader/floorshader.fs");
     Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
     Shader transparentshader(prefix + "shader/transparent_shader.vs", prefix + "shader/transparent_shader.fs");
     Shader cubemapshader(prefix + "/shader/skyboxshader.vs", prefix + "shader/skyboxshader.fs");
+    
+    // Determine light position
+    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(2.0, 2.0, 2.0));
+    light.shaderSetLight(cubeshader);
+    light.shaderSetLight(floorshader);
     
     // Setup vertices and indices
     float* vertices_cube = nullptr;
@@ -95,7 +99,7 @@ int main()
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 216 * sizeof(float), vertices_cube, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 288 * sizeof(float), vertices_cube, GL_STATIC_DRAW);
     
     // cubeVAO
     unsigned int cubeVAO;
@@ -108,7 +112,6 @@ int main()
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    //glBindVertexArray(0);
     
     // lightVAO
     unsigned int lightVAO;
@@ -117,7 +120,6 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    //glBindVertexArray(0);
     
     // squareVBO
     unsigned int VBO_square;
@@ -201,10 +203,15 @@ int main()
     cubeshader.setInt("material.diffuse", 0);
     cubeshader.setInt("material.specular", 1);
     cubeshader.setFloat("material.shininess", 64.0f);
-    cubeshader.setVec3f("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-    cubeshader.setVec3f("light.diffuse", glm::vec3(1.0f, 1.0f, 1.0f));
-    cubeshader.setVec3f("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-    cubeshader.setVec3f("light.position", glm::vec3(3.0f, 3.0f, -3.0f));
+    
+    cubemapshader.use();
+    cubemapshader.setInt("skybox", 0);
+    
+    // material properties
+    floorshader.use();
+    floorshader.setInt("material.diffuse", 0);
+    floorshader.setVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+    floorshader.setFloat("material.shininess", 1.0f);
     
     cubemapshader.use();
     cubemapshader.setInt("skybox", 0);
@@ -219,17 +226,14 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        // Projection
+        // MVP matrixes
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-0.5f, 0.0f, 0.0f));
         glm::mat4 view = ourcamera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
+        glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
         
         // Cube
-        cubeshader.use();
-        cubeshader.setMat4f("model", model);
-        cubeshader.setMat4f("view", view);
-        cubeshader.setMat4f("projection", projection);
+        cubeshader.setMVP(model, view);
         cubeshader.setVec3f("viewPos", ourcamera.Position);
         glBindVertexArray(cubeVAO);
         // bind diffuse map
@@ -242,12 +246,9 @@ int main()
         
         // Light
         model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(3.0f, 3.0f, -3.0f));
-        
-        lightshader.use();
-        lightshader.setMat4f("model", model);
-        lightshader.setMat4f("view", view);
-        lightshader.setMat4f("projection", projection);
+        model = glm::translate(model, light.Position);
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        lightshader.setMVP(model, view);
         glBindVertexArray(lightVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
@@ -257,11 +258,8 @@ int main()
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
         
-        cubeshader.use();
-        cubeshader.setMat4f("model", model);
-        cubeshader.setMat4f("view", view);
-        cubeshader.setMat4f("projection", projection);
-        cubeshader.setVec3f("viewPos", ourcamera.Position);
+        floorshader.setMVP(model, view);
+        floorshader.setVec3f("viewPos", ourcamera.Position);
         
         glBindVertexArray(VAO_square);
         glActiveTexture(GL_TEXTURE0);
@@ -285,10 +283,7 @@ int main()
         model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         
-        cubeshader.use();
-        cubeshader.setMat4f("model", model);
-        cubeshader.setMat4f("view", view);
-        cubeshader.setMat4f("projection", projection);
+        cubeshader.setMVP(model, view);
         cubeshader.setVec3f("viewPos", ourcamera.Position);
         
         glBindVertexArray(VAO_square);
@@ -298,10 +293,7 @@ int main()
         
         // Window
         // sort the transparent windows before rendering
-        transparentshader.use();
-        transparentshader.setMat4f("model", model);
-        transparentshader.setMat4f("view", view);
-        transparentshader.setMat4f("projection", projection);
+        transparentshader.setMVP(model, view);
         transparentshader.setVec3f("viewPos", ourcamera.Position);
         
         glBindVertexArray(VAO_square);

@@ -103,6 +103,7 @@ void getCubeWithUV(float*& vertices)
 //    };
     
     vertices = new float[288] {
+        //------- pos ------- ----- normal ----- -- texture --
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f,
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
@@ -143,18 +144,18 @@ void getCubeWithUV(float*& vertices)
          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, 
     };
 }
 
 void getSquare(float*& vertices, unsigned int*& indices)
 {
     vertices = new float[48] {
-    //  ------- pos ------- ----- color ----- -- texture --
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,  0.0f,  0.0f,
+    //  ------- pos ------- ----- normal ----- -- texture --
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f,
          0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
          0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
          0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
     };
