@@ -6,17 +6,18 @@
 //
 
 #define GL_SILENCE_DEPRECATION
-#include "glad/include/glad/glad.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "lib/stb_image.h"
+#include "stb_image.h"
 
 #include <iostream>
 #include <map>
+#include <memory>
 
 #include "camera.h"
 #include "shader_s.h"
@@ -40,6 +41,7 @@ int main()
 #endif
 
     // glfw window creation
+    // --------------------
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
@@ -59,22 +61,26 @@ int main()
         return -1;
     }
 
-    std::string prefix = "/Users/zhouxch/Playground/opengl_test/opengl_test/";
+    std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
     
-    // build and compile our shader program
-    std::cout << std::filesystem::current_path();
+    // build and compile our shader programs
+    std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     Shader cubeshader(prefix + "shader/cubeshader.vs", prefix + "shader/cubeshader.fs");
     Shader floorshader(prefix + "shader/floorshader.vs", prefix + "shader/floorshader.fs");
     Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
     Shader transparentshader(prefix + "shader/transparent_shader.vs", prefix + "shader/transparent_shader.fs");
     Shader cubemapshader(prefix + "/shader/skyboxshader.vs", prefix + "shader/skyboxshader.fs");
+    Shader reflectshader(prefix + "/shader/reflectshader.vs", prefix + "shader/reflectshader.fs");
+    Shader refractshader(prefix + "/shader/refractshader.vs", prefix + "shader/refractshader.fs");
     
     // Determine light position
+    // ------------------------
     Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(2.0, 2.0, 2.0));
     light.shaderSetLight(cubeshader);
     light.shaderSetLight(floorshader);
     
     // cubeVBO
+    // -------
     float* vertices_cube = nullptr;
     getCubeWithUV(vertices_cube);
     
@@ -84,6 +90,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, 288 * sizeof(float), vertices_cube, GL_STATIC_DRAW);
     
     // cubeVAO
+    // -------
     unsigned int VAO_cube;
     glGenVertexArrays(1, &VAO_cube);
     glBindVertexArray(VAO_cube);
@@ -95,15 +102,8 @@ int main()
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     
-    // lightVAO
-    unsigned int VAO_light;
-    glGenVertexArrays(1, &VAO_light);
-    glBindVertexArray(VAO_light);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    
     // squareVBO
+    // ---------
     float* vertices_square = nullptr;
     getSquare(vertices_square);
     
@@ -113,6 +113,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, 48 * sizeof(float), vertices_square, GL_STATIC_DRAW);
     
     // squareVAO
+    // ---------
     unsigned int VAO_square;
     glGenVertexArrays(1, &VAO_square);
     glBindVertexArray(VAO_square);
@@ -124,6 +125,7 @@ int main()
     glEnableVertexAttribArray(2);
     
     // Cubemap VAO, VBO
+    // ----------------
     float* vertices_cubemap = nullptr;
     getCubeMap(vertices_cubemap);
     
@@ -138,7 +140,8 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     
-    // Bind texture
+    // Generate texture
+    // ----------------
     unsigned int texture_cube, texture_cube_specular;
     genTexture(texture_cube, prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
     genTexture(texture_cube_specular, prefix + "media/container2_specular.png", GL_CLAMP_TO_EDGE);
@@ -164,6 +167,7 @@ int main()
     genCubeMapTexture(texture_cubemap, faces);
     
     // transparent window locations
+    // ----------------------------
     std::vector<glm::vec3> windows
     {
         glm::vec3(-1.5f, 0.0f, -1.48f),
@@ -173,6 +177,8 @@ int main()
         glm::vec3( 0.5f, 0.0f, -1.6f)
     };
     
+    // OpenGL tests
+    // ---------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_CLAMP);
     glEnable(GL_BLEND);
@@ -180,18 +186,25 @@ int main()
     //glEnable(GL_CULL_FACE);
     
     // Shader properties
+    // -----------------
     cubeshader.use();
     cubeshader.setInt("material.diffuse", 0);
     cubeshader.setInt("material.specular", 1);
     cubeshader.setFloat("material.shininess", 64.0f);
-    
+    // ---------------
     floorshader.use();
     floorshader.setInt("material.diffuse", 0);
     floorshader.setVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
     floorshader.setFloat("material.shininess", 1.0f);
-    
+    // -----------------
     cubemapshader.use();
     cubemapshader.setInt("skybox", 0);
+    // -----------------
+    reflectshader.use();
+    reflectshader.setInt("skybox", 0);
+    // -----------------
+    refractshader.use();
+    refractshader.setInt("skybox", 0);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -199,16 +212,19 @@ int main()
         // input
         processInput(window);
 
-        // render
+        // Clear
+        // -----
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // MVP matrixes
+        // ------------
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = ourcamera.GetViewMatrix();
         glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
         
         // Cube
+        // ----
         model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
         cubeshader.setMVP(model, view);
         cubeshader.setVec3f("viewPos", ourcamera.Position);
@@ -220,13 +236,15 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Light
+        // -----
         model = glm::translate(glm::mat4(1.0f), light.Position);
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
         lightshader.setMVP(model, view);
-        glBindVertexArray(VAO_light);
+        glBindVertexArray(VAO_cube);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Floor
+        // -----
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
@@ -238,6 +256,7 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 6);
  
         // Skybox
+        // ------
         glDepthFunc(GL_LEQUAL);
         cubemapshader.use();
         glm::mat4 view_cubemap = glm::mat4(glm::mat3(view));
@@ -249,7 +268,30 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthFunc(GL_LESS);
         
+        // Reflect object
+        // --------------
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.5f, 0.0f));
+        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+        reflectshader.setMVP(model, view);
+        reflectshader.setVec3f("cameraPos", ourcamera.Position);
+        glBindVertexArray(VAO_cube);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        // Refract object
+        // --------------
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.5f, 0.0f));
+        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+        refractshader.setMVP(model, view);
+        refractshader.setVec3f("cameraPos", ourcamera.Position);
+        glBindVertexArray(VAO_cube);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
         // Grass
+        // -----
         model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         cubeshader.setMVP(model, view);
@@ -261,6 +303,7 @@ int main()
         
         // Window
         // sort the transparent windows before rendering
+        // ---------------------------------------------
         transparentshader.setMVP(model, view);
         transparentshader.setVec3f("viewPos", ourcamera.Position);
         glBindVertexArray(VAO_square);
@@ -288,7 +331,6 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     glDeleteVertexArrays(1, &VAO_cube);
-    glDeleteVertexArrays(1, &VAO_light);
     glDeleteVertexArrays(1, &VAO_square);
     glDeleteBuffers(1, &VBO_cube);
     glDeleteBuffers(1, &VBO_square);
