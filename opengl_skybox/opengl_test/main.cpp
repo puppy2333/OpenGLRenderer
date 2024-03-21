@@ -23,22 +23,9 @@
 #include "objects.h"
 #include "light.h"
 #include "const.h"
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-
-// Camera
-Camera ourcamera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
-
-void genTexture(unsigned int& texture, std::string path, GLenum handle_edge);
-void genCubeMapTexture(unsigned int& texture, std::vector<std::string> faces);
-void printMat4(glm::mat4 & matrix);
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+#include "texture.h"
+#include "callbacks.h"
+#include "utils.h"
 
 int main()
 {
@@ -87,25 +74,20 @@ int main()
     light.shaderSetLight(cubeshader);
     light.shaderSetLight(floorshader);
     
-    // Setup vertices and indices
+    // cubeVBO
     float* vertices_cube = nullptr;
     getCubeWithUV(vertices_cube);
     
-    float* vertices_square = nullptr;
-    unsigned int* indices_square = nullptr;
-    getSquare(vertices_square, indices_square);
-    
-    // cubeVBO
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    unsigned int VBO_cube;
+    glGenBuffers(1, &VBO_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
     glBufferData(GL_ARRAY_BUFFER, 288 * sizeof(float), vertices_cube, GL_STATIC_DRAW);
     
     // cubeVAO
-    unsigned int cubeVAO;
-    glGenVertexArrays(1, &cubeVAO);
-    glBindVertexArray(cubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    unsigned int VAO_cube;
+    glGenVertexArrays(1, &VAO_cube);
+    glBindVertexArray(VAO_cube);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
@@ -114,14 +96,17 @@ int main()
     glEnableVertexAttribArray(2);
     
     // lightVAO
-    unsigned int lightVAO;
-    glGenVertexArrays(1, &lightVAO);
-    glBindVertexArray(lightVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    unsigned int VAO_light;
+    glGenVertexArrays(1, &VAO_light);
+    glBindVertexArray(VAO_light);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     
     // squareVBO
+    float* vertices_square = nullptr;
+    getSquare(vertices_square);
+    
     unsigned int VBO_square;
     glGenBuffers(1, &VBO_square);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_square);
@@ -162,7 +147,7 @@ int main()
     genTexture(texture_floor, prefix + "media/wall.jpg", GL_REPEAT);
     
     unsigned int texture_grass;
-    genTexture(texture_grass, prefix + "media/grass.png", GL_REPEAT);
+    genTexture(texture_grass, prefix + "media/grass.png", GL_CLAMP_TO_EDGE);
     
     unsigned int texture_window;
     genTexture(texture_window, prefix + "media/blending_transparent_window.png", GL_CLAMP_TO_EDGE);
@@ -189,25 +174,17 @@ int main()
     };
     
     glEnable(GL_DEPTH_TEST);
-    
-    // Early-z
     glEnable(GL_DEPTH_CLAMP);
-    
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
     //glEnable(GL_CULL_FACE);
     
-    // material properties
+    // Shader properties
     cubeshader.use();
     cubeshader.setInt("material.diffuse", 0);
     cubeshader.setInt("material.specular", 1);
     cubeshader.setFloat("material.shininess", 64.0f);
     
-    cubemapshader.use();
-    cubemapshader.setInt("skybox", 0);
-    
-    // material properties
     floorshader.use();
     floorshader.setInt("material.diffuse", 0);
     floorshader.setVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
@@ -228,41 +205,35 @@ int main()
         
         // MVP matrixes
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-0.5f, 0.0f, 0.0f));
         glm::mat4 view = ourcamera.GetViewMatrix();
         glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
         
         // Cube
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
         cubeshader.setMVP(model, view);
         cubeshader.setVec3f("viewPos", ourcamera.Position);
-        glBindVertexArray(cubeVAO);
-        // bind diffuse map
-        glActiveTexture(GL_TEXTURE0);
+        glBindVertexArray(VAO_cube);
+        glActiveTexture(GL_TEXTURE0); // bind diffuse map
         glBindTexture(GL_TEXTURE_2D, texture_cube);
-        // bind specular map
-        glActiveTexture(GL_TEXTURE1);
+        glActiveTexture(GL_TEXTURE1); // bind specular map
         glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Light
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, light.Position);
+        model = glm::translate(glm::mat4(1.0f), light.Position);
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
         lightshader.setMVP(model, view);
-        glBindVertexArray(lightVAO);
+        glBindVertexArray(VAO_light);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Floor
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-        
         floorshader.setMVP(model, view);
         floorshader.setVec3f("viewPos", ourcamera.Position);
-        
         glBindVertexArray(VAO_square);
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE0); // bind floor texture
         glBindTexture(GL_TEXTURE_2D, texture_floor);
         glDrawArrays(GL_TRIANGLES, 0, 6);
  
@@ -279,13 +250,10 @@ int main()
         glDepthFunc(GL_LESS);
         
         // Grass
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        
         cubeshader.setMVP(model, view);
         cubeshader.setVec3f("viewPos", ourcamera.Position);
-        
         glBindVertexArray(VAO_square);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_grass);
@@ -295,7 +263,6 @@ int main()
         // sort the transparent windows before rendering
         transparentshader.setMVP(model, view);
         transparentshader.setVec3f("viewPos", ourcamera.Position);
-        
         glBindVertexArray(VAO_square);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_window);
@@ -320,10 +287,10 @@ int main()
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightVAO);
+    glDeleteVertexArrays(1, &VAO_cube);
+    glDeleteVertexArrays(1, &VAO_light);
     glDeleteVertexArrays(1, &VAO_square);
-    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &VBO_cube);
     glDeleteBuffers(1, &VBO_square);
     cubeshader.del();
     lightshader.del();
@@ -331,136 +298,4 @@ int main()
     // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
-}
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    
-    float cameraSpeed = 0.025f; // adjust accordingly
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(FORWARD, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(BACKWARD, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(LEFT, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(RIGHT, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(UP, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(DOWN, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(MOUSE_LEFT, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(MOUSE_RIGHT, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(MOUSE_UP, cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        ourcamera.ProcessKeyboard(MOUSE_DOWN, cameraSpeed);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
-
-void genTexture(unsigned int& texture, std::string path, GLenum handle_edge)
-{
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-    if (data) {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        else if (nrChannels == 3)
-            format = GL_RGB;
-        else if (nrChannels == 4)
-            format = GL_RGBA;
-        else
-            format = GL_RGB;
-        
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, handle_edge);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, handle_edge);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-    else {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    
-    stbi_image_free(data);
-}
-
-void genCubeMapTexture(unsigned int& texture, std::vector<std::string> faces)
-{
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    
-    int width, height, nrChannels;
-    for (unsigned int i = 0; i < faces.size(); i++) {
-        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-        if (data) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-            stbi_image_free(data);
-        }
-        else {
-            std::cout << "Failed to load texture" << std::endl;
-            stbi_image_free(data);
-        }
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-}
-
-void printMat4(glm::mat4 & matrix)
-{
-    std::cout << "\n";
-    for (int x = 0; x < 4; x++) {
-        for (int y = 0; y < 4; y++) {
-            std::cout << matrix[x][y] << " ";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n";
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    ourcamera.ProcessMouseMovement(xoffset, yoffset);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    ourcamera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

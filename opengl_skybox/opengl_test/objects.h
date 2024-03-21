@@ -148,7 +148,7 @@ void getCubeWithUV(float*& vertices)
     };
 }
 
-void getSquare(float*& vertices, unsigned int*& indices)
+void getSquare(float*& vertices)
 {
     vertices = new float[48] {
     //  ------- pos ------- ----- normal ----- -- texture --
@@ -158,10 +158,6 @@ void getSquare(float*& vertices, unsigned int*& indices)
         -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
          0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
          0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
-    };
-    indices = new unsigned int[6] {
-        0, 1, 2,
-        1, 2, 3,
     };
 }
 
