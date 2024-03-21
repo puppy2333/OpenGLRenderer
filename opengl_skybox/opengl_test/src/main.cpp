@@ -72,6 +72,7 @@ int main()
     Shader cubemapshader(prefix + "/shader/skyboxshader.vs", prefix + "shader/skyboxshader.fs");
     Shader reflectshader(prefix + "/shader/reflectshader.vs", prefix + "shader/reflectshader.fs");
     Shader refractshader(prefix + "/shader/refractshader.vs", prefix + "shader/refractshader.fs");
+    Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
     
     // Determine light position
     // ------------------------
@@ -168,14 +169,35 @@ int main()
     
     // transparent window locations
     // ----------------------------
-    std::vector<glm::vec3> windows
-    {
+    std::vector<glm::vec3> windows {
         glm::vec3(-1.5f, 0.0f, -1.48f),
         glm::vec3( 1.5f, 0.0f, 1.51f),
         glm::vec3( 0.0f, 0.0f, 1.7f),
         glm::vec3(-0.3f, 0.0f, -3.3f),
         glm::vec3( 0.5f, 0.0f, -1.6f)
     };
+    
+    // Frame buffer
+    // ------------
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        unsigned int texture_framebuffer;
+        genFrameBufferTexture(texture_framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_framebuffer, 0);
+    
+        // Render buffer object
+        // --------------------
+        unsigned int rbo;
+        glGenRenderbuffers(1, &rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     // OpenGL tests
     // ---------------------
@@ -205,6 +227,9 @@ int main()
     // -----------------
     refractshader.use();
     refractshader.setInt("skybox", 0);
+    // -----------------
+    screenshader.use();
+    screenshader.setInt("screenTexture", 0);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -214,115 +239,138 @@ int main()
 
         // Clear
         // -----
+//        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // 1. Render to frame buffer
+        // ------------------------
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glEnable(GL_DEPTH_TEST);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+            // MVP matrixes
+            // ------------
+            glm::mat4 model = glm::mat4(1.0f);
+            glm::mat4 view = ourcamera.GetViewMatrix();
+            //glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
+            
+            // Cube
+            // ----
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
+            cubeshader.setMVP(model, view);
+            cubeshader.setVec3f("viewPos", ourcamera.Position);
+            glBindVertexArray(VAO_cube);
+            glActiveTexture(GL_TEXTURE0); // bind diffuse map
+            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glActiveTexture(GL_TEXTURE1); // bind specular map
+            glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         
-        // MVP matrixes
-        // ------------
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = ourcamera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
+            // Light
+            // -----
+            model = glm::translate(glm::mat4(1.0f), light.Position);
+            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+            lightshader.setMVP(model, view);
+            glBindVertexArray(VAO_cube);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         
-        // Cube
-        // ----
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
-        cubeshader.setMVP(model, view);
-        cubeshader.setVec3f("viewPos", ourcamera.Position);
-        glBindVertexArray(VAO_cube);
-        glActiveTexture(GL_TEXTURE0); // bind diffuse map
-        glBindTexture(GL_TEXTURE_2D, texture_cube);
-        glActiveTexture(GL_TEXTURE1); // bind specular map
-        glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+            // Floor
+            // -----
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+            floorshader.setMVP(model, view);
+            floorshader.setVec3f("viewPos", ourcamera.Position);
+            glBindVertexArray(VAO_square);
+            glActiveTexture(GL_TEXTURE0); // bind floor texture
+            glBindTexture(GL_TEXTURE_2D, texture_floor);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        // Light
-        // -----
-        model = glm::translate(glm::mat4(1.0f), light.Position);
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-        lightshader.setMVP(model, view);
-        glBindVertexArray(VAO_cube);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        // Floor
-        // -----
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-        floorshader.setMVP(model, view);
-        floorshader.setVec3f("viewPos", ourcamera.Position);
+        // 2. Render to screen
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        screenshader.use();
         glBindVertexArray(VAO_square);
-        glActiveTexture(GL_TEXTURE0); // bind floor texture
-        glBindTexture(GL_TEXTURE_2D, texture_floor);
+        glDisable(GL_DEPTH_TEST);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_framebuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        
+        
+        
  
         // Skybox
         // ------
-        glDepthFunc(GL_LEQUAL);
-        cubemapshader.use();
-        glm::mat4 view_cubemap = glm::mat4(glm::mat3(view));
-        cubemapshader.setMat4f("view", view_cubemap);
-        cubemapshader.setMat4f("projection", projection);
-        glBindVertexArray(VAO_cubemap);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthFunc(GL_LESS);
+//        glDepthFunc(GL_LEQUAL);
+//        cubemapshader.use();
+//        glm::mat4 view_cubemap = glm::mat4(glm::mat3(view));
+//        cubemapshader.setMat4f("view", view_cubemap);
+//        cubemapshader.setMat4f("projection", projection);
+//        glBindVertexArray(VAO_cubemap);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        glDepthFunc(GL_LESS);
         
         // Reflect object
         // --------------
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.5f, 0.0f));
-        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-        reflectshader.setMVP(model, view);
-        reflectshader.setVec3f("cameraPos", ourcamera.Position);
-        glBindVertexArray(VAO_cube);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.5f, 0.0f));
+//        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+//        reflectshader.setMVP(model, view);
+//        reflectshader.setVec3f("cameraPos", ourcamera.Position);
+//        glBindVertexArray(VAO_cube);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Refract object
         // --------------
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.5f, 0.0f));
-        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-        refractshader.setMVP(model, view);
-        refractshader.setVec3f("cameraPos", ourcamera.Position);
-        glBindVertexArray(VAO_cube);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.5f, 0.0f));
+//        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+//        refractshader.setMVP(model, view);
+//        refractshader.setVec3f("cameraPos", ourcamera.Position);
+//        glBindVertexArray(VAO_cube);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Grass
         // -----
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        cubeshader.setMVP(model, view);
-        cubeshader.setVec3f("viewPos", ourcamera.Position);
-        glBindVertexArray(VAO_square);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_grass);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+//        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+//        cubeshader.setMVP(model, view);
+//        cubeshader.setVec3f("viewPos", ourcamera.Position);
+//        glBindVertexArray(VAO_square);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_2D, texture_grass);
+//        glDrawArrays(GL_TRIANGLES, 0, 6);
         
         // Window
         // sort the transparent windows before rendering
         // ---------------------------------------------
-        transparentshader.setMVP(model, view);
-        transparentshader.setVec3f("viewPos", ourcamera.Position);
-        glBindVertexArray(VAO_square);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_window);
-        
-        std::map<float, glm::vec3> sorted;
-        for (unsigned int i = 0; i < windows.size(); i++) {
-            float distance = glm::length(ourcamera.Position - windows[i]);
-            sorted[distance] = windows[i];
-        }
-        
-        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it) {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, it->second);
-            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            transparentshader.setMat4f("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
+//        transparentshader.setMVP(model, view);
+//        transparentshader.setVec3f("viewPos", ourcamera.Position);
+//        glBindVertexArray(VAO_square);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_2D, texture_window);
+//        
+//        std::map<float, glm::vec3> sorted;
+//        for (unsigned int i = 0; i < windows.size(); i++) {
+//            float distance = glm::length(ourcamera.Position - windows[i]);
+//            sorted[distance] = windows[i];
+//        }
+//        
+//        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it) {
+//            model = glm::mat4(1.0f);
+//            model = glm::translate(model, it->second);
+//            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+//            transparentshader.setMat4f("model", model);
+//            glDrawArrays(GL_TRIANGLES, 0, 6);
+//        }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
