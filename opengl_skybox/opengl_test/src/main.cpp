@@ -251,9 +251,10 @@ int main()
         glClear(GL_DEPTH_BUFFER_BIT);
     
             // Configure depth map
-            GLfloat near_plane = 1.0f, far_plane = 15.0f;
-            glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, near_plane, far_plane);
-            glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            //GLfloat near_plane = 1.0f, far_plane = 15.0f;
+            //glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, near_plane, far_plane);
+            glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
+            glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
             
@@ -272,17 +273,10 @@ int main()
             glBindVertexArray(VAO_cube);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
-            // Render light
-            model = glm::translate(glm::mat4(1.0f), light.Position);
-            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-            depthmapshader.setMat4f("model", model);
-            glBindVertexArray(VAO_cube);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        
             // Render floor
             model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
             model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+            model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
             depthmapshader.setMat4f("model", model);
             glBindVertexArray(VAO_square);
             glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -330,7 +324,7 @@ int main()
         // Render floor
         model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
         blinnphongshader_shadow.setMVP(model, view);
         glBindVertexArray(VAO_square);
         glActiveTexture(GL_TEXTURE0); // bind floor texture
