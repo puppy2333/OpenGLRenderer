@@ -74,12 +74,18 @@ int main()
     Shader refractshader(prefix + "/shader/refractshader.vs", prefix + "shader/refractshader.fs");
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
     Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
+    Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
+    //Shader whiteshader_shadow(prefix + "/shader/whiteshader_shadow.vs", prefix + "shader/whiteshader_shadow.fs");
     
     // Determine light position
     // ------------------------
-    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(2.0, 2.0, 2.0));
+    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-2.0f, 4.0f, -1.0f));
     light.shaderSetLight(cubeshader);
     light.shaderSetLight(floorshader);
+    blinnphongshader_shadow.use();
+    blinnphongshader_shadow.setVec3f("lightPos", light.Position);
+    //whiteshader_shadow.use();
+    //whiteshader_shadow.setVec3f("lightPos", light.Position);
     
     // cubeVBO
     // -------
@@ -224,6 +230,10 @@ int main()
     // -----------------
     screenshader.use();
     screenshader.setInt("screenTexture", 0);
+    // -----------------
+    blinnphongshader_shadow.use();
+    blinnphongshader_shadow.setInt("diffuseTexture", 0);
+    blinnphongshader_shadow.setInt("shadowMap", 1);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -235,21 +245,30 @@ int main()
         // ------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
         glEnable(GL_DEPTH_TEST);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(GL_FRONT);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
     
             // Configure depth map
             GLfloat near_plane = 1.0f, far_plane = 15.0f;
-            glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+            glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, near_plane, far_plane);
             glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
             
+            // Render cube
             depthmapshader.use();
             depthmapshader.setMat4f("lightProjection", lightProjection);
             depthmapshader.setMat4f("lightView", lightView);
             depthmapshader.setMat4f("model", model);
+            glBindVertexArray(VAO_cube);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         
-            // Render cube
+            // Render cube2
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -0.5f, 2.0f));
+            depthmapshader.use();
+            depthmapshader.setMat4f("model", model);
             glBindVertexArray(VAO_cube);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
@@ -260,7 +279,7 @@ int main()
             glBindVertexArray(VAO_cube);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
-            // Floor
+            // Render floor
             model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
             model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
@@ -268,19 +287,57 @@ int main()
             glBindVertexArray(VAO_square);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        
         // 2. Render to screen
+        //glDisable(GL_CULL_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        glEnable(GL_DEPTH_TEST);
 
-        screenshader.use();
-        glBindVertexArray(VAO_square);
-        glDisable(GL_DEPTH_TEST);
+        // Render cube
+        model = glm::mat4(1.0f);
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+        glm::mat4 view = ourcamera.GetViewMatrix();
+        blinnphongshader_shadow.setMVP(model, view);
+        blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
+        blinnphongshader_shadow.setMat4f("lightView", lightView);
+        blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
         glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_cube);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+        glBindVertexArray(VAO_cube);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        // Render cube2
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -0.5f, 2.0f));
+        blinnphongshader_shadow.setMVP(model, view);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture_cube);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+        glBindVertexArray(VAO_cube);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        // Render light
+        model = glm::translate(glm::mat4(1.0f), light.Position);
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        lightshader.setMVP(model, view);
+        glBindVertexArray(VAO_cube);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        // Render floor
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+        blinnphongshader_shadow.setMVP(model, view);
+        glBindVertexArray(VAO_square);
+        glActiveTexture(GL_TEXTURE0); // bind floor texture
+        glBindTexture(GL_TEXTURE_2D, texture_floor);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
         
 
         // MVP matrixes
@@ -406,4 +463,18 @@ int main()
     // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
+}
+
+void codebuffer()
+{
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+//    glClear(GL_COLOR_BUFFER_BIT);
+//
+//    screenshader.use();
+//    glBindVertexArray(VAO_square);
+//    glDisable(GL_DEPTH_TEST);
+//    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+//    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
