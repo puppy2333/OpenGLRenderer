@@ -73,6 +73,7 @@ int main()
     Shader reflectshader(prefix + "/shader/reflectshader.vs", prefix + "shader/reflectshader.fs");
     Shader refractshader(prefix + "/shader/refractshader.vs", prefix + "shader/refractshader.fs");
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
+    Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
     
     // Determine light position
     // ------------------------
@@ -179,24 +180,17 @@ int main()
     
     // Frame buffer
     // ------------
-    unsigned int fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        unsigned int texture_framebuffer;
-        genFrameBufferTexture(texture_framebuffer);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_framebuffer, 0);
+    unsigned int FBO_depthmap;
+    glGenFramebuffers(1, &FBO_depthmap);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
+        unsigned int texture_depth_framebuffer;
+        genFrameBufferDepthTexture(texture_depth_framebuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture_depth_framebuffer, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
     
-        // Render buffer object
-        // --------------------
-        unsigned int rbo;
-        glGenRenderbuffers(1, &rbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     // OpenGL tests
@@ -236,72 +230,96 @@ int main()
     {
         // input
         processInput(window);
-
-        // Clear
-        // -----
-//        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // 1. Render to frame buffer
         // ------------------------
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
     
-            // MVP matrixes
-            // ------------
+            // Configure depth map
+            GLfloat near_plane = 1.0f, far_plane = 15.0f;
+            glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+            glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 model = glm::mat4(1.0f);
-            glm::mat4 view = ourcamera.GetViewMatrix();
-            //glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
             
-            // Cube
-            // ----
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
-            cubeshader.setMVP(model, view);
-            cubeshader.setVec3f("viewPos", ourcamera.Position);
+            depthmapshader.use();
+            depthmapshader.setMat4f("lightProjection", lightProjection);
+            depthmapshader.setMat4f("lightView", lightView);
+            depthmapshader.setMat4f("model", model);
+        
+            // Render cube
             glBindVertexArray(VAO_cube);
-            glActiveTexture(GL_TEXTURE0); // bind diffuse map
-            glBindTexture(GL_TEXTURE_2D, texture_cube);
-            glActiveTexture(GL_TEXTURE1); // bind specular map
-            glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
-            // Light
-            // -----
+            // Render light
             model = glm::translate(glm::mat4(1.0f), light.Position);
             model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-            lightshader.setMVP(model, view);
+            depthmapshader.setMat4f("model", model);
             glBindVertexArray(VAO_cube);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
             // Floor
-            // -----
             model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
             model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-            floorshader.setMVP(model, view);
-            floorshader.setVec3f("viewPos", ourcamera.Position);
+            depthmapshader.setMat4f("model", model);
             glBindVertexArray(VAO_square);
-            glActiveTexture(GL_TEXTURE0); // bind floor texture
-            glBindTexture(GL_TEXTURE_2D, texture_floor);
             glDrawArrays(GL_TRIANGLES, 0, 6);
+        
         
         // 2. Render to screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         screenshader.use();
         glBindVertexArray(VAO_square);
         glDisable(GL_DEPTH_TEST);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_framebuffer);
+        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         
+
+        // MVP matrixes
+        // ------------
+        //glm::mat4 model = glm::mat4(1.0f);
+        //glm::mat4 view = ourcamera.GetViewMatrix();
+        //glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
         
-        
+//            // Cube
+//            // ----
+//            model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
+//            cubeshader.setMVP(model, view);
+//            cubeshader.setVec3f("viewPos", ourcamera.Position);
+//            glBindVertexArray(VAO_cube);
+//            glActiveTexture(GL_TEXTURE0); // bind diffuse map
+//            glBindTexture(GL_TEXTURE_2D, texture_cube);
+//            glActiveTexture(GL_TEXTURE1); // bind specular map
+//            glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
+//            glDrawArrays(GL_TRIANGLES, 0, 36);
+//
+//            // Light
+//            // -----
+//            model = glm::translate(glm::mat4(1.0f), light.Position);
+//            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+//            lightshader.setMVP(model, view);
+//            glBindVertexArray(VAO_cube);
+//            glDrawArrays(GL_TRIANGLES, 0, 36);
+//
+//            // Floor
+//            // -----
+//            model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+//            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//            model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+//            floorshader.setMVP(model, view);
+//            floorshader.setVec3f("viewPos", ourcamera.Position);
+//            glBindVertexArray(VAO_square);
+//            glActiveTexture(GL_TEXTURE0); // bind floor texture
+//            glBindTexture(GL_TEXTURE_2D, texture_floor);
+//            glDrawArrays(GL_TRIANGLES, 0, 6);
  
         // Skybox
         // ------

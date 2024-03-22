@@ -1,14 +1,11 @@
 #version 330 core
-out vec4 FragColor;
-
+out vec4 color;
 in vec2 TexCoords;
 
-uniform sampler2D screenTexture;
+uniform sampler2D depthMap;
 
 void main()
 {
-    FragColor = texture(screenTexture, TexCoords);
-    
-    // Reverse the color
-    // FragColor = vec4(vec3(1.0 - texture(screenTexture, TexCoords)), 1.0);
+    float depthValue = texture(depthMap, TexCoords).r;
+    color = vec4(vec3(depthValue), 1.0);
 }
