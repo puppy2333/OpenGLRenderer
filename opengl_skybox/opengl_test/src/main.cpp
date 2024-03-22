@@ -79,7 +79,7 @@ int main()
     
     // Determine light position
     // ------------------------
-    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-2.0f, 4.0f, -1.0f));
+    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -2.0f));
     light.shaderSetLight(cubeshader);
     light.shaderSetLight(floorshader);
     blinnphongshader_shadow.use();
@@ -256,7 +256,7 @@ int main()
             glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
             glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             
             // Render cube
             depthmapshader.use();
@@ -267,7 +267,7 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         
             // Render cube2
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -0.5f, 2.0f));
+            model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
             depthmapshader.use();
             depthmapshader.setMat4f("model", model);
             glBindVertexArray(VAO_cube);
@@ -291,7 +291,7 @@ int main()
 
         // Render cube
         model = glm::mat4(1.0f);
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat4 view = ourcamera.GetViewMatrix();
         blinnphongshader_shadow.setMVP(model, view);
         blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
@@ -305,7 +305,7 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
         // Render cube2
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -0.5f, 2.0f));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
         blinnphongshader_shadow.setMVP(model, view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_cube);
