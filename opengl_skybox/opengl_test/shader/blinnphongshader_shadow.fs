@@ -61,7 +61,7 @@ float PCSSShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
     
-    float bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.003);
+    float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.0005);
     
     // PCSS (percentage colser soft shadows)
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
@@ -83,7 +83,10 @@ float PCSSShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     float ave_dist = dist / count;
     
     int half_kernel_size = 0;
-    if (ave_dist / currentDepth < 0.005) {
+    if (ave_dist / currentDepth < 0.003) {
+        half_kernel_size = 0;
+    }
+    else if (ave_dist / currentDepth < 0.005) {
         half_kernel_size = 1;
     }
     else if (ave_dist / currentDepth < 0.01) {
