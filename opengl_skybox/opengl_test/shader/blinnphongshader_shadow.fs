@@ -14,6 +14,8 @@ uniform sampler2D shadowMap;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
+uniform int imgui_shadowtype;
+
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -137,10 +139,18 @@ void main()
     vec3 halfwayDir = normalize(lightDir + viewDir);
     spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
     vec3 specular = spec * lightColor;
+    
     // Calculate shadow
-    // float shadow = ShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
-//     float shadow = PCFShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
-    float shadow = PCSSShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
+    float shadow = 0;
+    if (imgui_shadowtype == 0) {
+        shadow = ShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
+    }
+    else if (imgui_shadowtype == 1) {
+        shadow = PCFShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
+    }
+    else if (imgui_shadowtype == 2) {
+        shadow = PCSSShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
+    }
     
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 

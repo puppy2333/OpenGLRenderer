@@ -5,6 +5,7 @@
 //  Created by 周宣辰 on 2024/2/9.
 //
 
+// OpenGL settings
 #define GL_SILENCE_DEPRECATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -12,18 +13,21 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Load images (texture)
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+// cpp std
 #include <iostream>
 #include <map>
 #include <memory>
 
+// UI (ref. https://github.com/ocornut/imgui)
 #include <imui/imgui.h>
 #include <imui/imgui_impl_glfw.h>
 #include <imui/imgui_impl_opengl3.h>
 
-
+// My files
 #include "camera.h"
 #include "shader_s.h"
 #include "objects.h"
@@ -66,34 +70,28 @@ int main()
         return -1;
     }
 
-    // -------------------------------------------------------
     // Setup Dear ImGui context
+    // ------------------------
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
-
+    ImGui::StyleColorsDark(); // Setup Dear ImGui style
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     const char* glsl_version = "#version 150";
     ImGui_ImplOpenGL3_Init(glsl_version);
-    
     // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    bool show_demo_window = false;
+    static int imgui_shadowtype = 0;
     
-    
-    // -------------------------------------------------------
-    
+    // Set prefix
+    // ----------
     std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
     
     // build and compile our shader programs
+    // -------------------------------------
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     Shader cubeshader(prefix + "shader/cubeshader.vs", prefix + "shader/cubeshader.fs");
     Shader floorshader(prefix + "shader/floorshader.vs", prefix + "shader/floorshader.fs");
@@ -105,7 +103,6 @@ int main()
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
     Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
-    //Shader whiteshader_shadow(prefix + "/shader/whiteshader_shadow.vs", prefix + "shader/whiteshader_shadow.fs");
     
     // Determine light position
     // ------------------------
@@ -114,8 +111,6 @@ int main()
     light.shaderSetLight(floorshader);
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
-    //whiteshader_shadow.use();
-    //whiteshader_shadow.setVec3f("lightPos", light.Position);
     
     // cubeVBO
     // -------
@@ -329,6 +324,7 @@ int main()
         blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
         blinnphongshader_shadow.setMat4f("lightView", lightView);
         blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
+        blinnphongshader_shadow.setInt("imgui_shadowtype", imgui_shadowtype);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_cube);
         glActiveTexture(GL_TEXTURE1);
@@ -365,48 +361,29 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        // ---------------------------------------------------------------
         // Start the Dear ImGui frame
+        // --------------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        // 1. Show the big demo window
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
+        ImGui::Begin("Rendering settings");
+        
+        const char* items[] = {
+            "vanilla",
+            "percentage-closer filtering (PCF)",
+            "percentage colser soft shadows (PCSS)"
+        };
+        ImGui::Combo("Shadow mapping type", &imgui_shadowtype, items, IM_ARRAYSIZE(items));
+        
+        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
 
         // Rendering
         ImGui::Render();
