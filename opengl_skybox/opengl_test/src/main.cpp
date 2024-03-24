@@ -36,6 +36,8 @@
 #include "texture.h"
 #include "callbacks.h"
 #include "utils.h"
+#include "globjects.h"
+#include "myimgui.h"
 
 int main()
 {
@@ -72,19 +74,7 @@ int main()
 
     // Setup Dear ImGui context
     // ------------------------
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    ImGui::StyleColorsDark(); // Setup Dear ImGui style
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    const char* glsl_version = "#version 150";
-    ImGui_ImplOpenGL3_Init(glsl_version);
-    // Our state
-    bool show_demo_window = false;
-    static int imgui_shadowtype = 0;
+    MyImgui myimgui(window, false, 0);
     
     // Set prefix
     // ----------
@@ -112,66 +102,10 @@ int main()
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
     
-    // cubeVBO
-    // -------
-    float* vertices_cube = nullptr;
-    getCubeWithUV(vertices_cube);
-    
-    unsigned int VBO_cube;
-    glGenBuffers(1, &VBO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glBufferData(GL_ARRAY_BUFFER, 288 * sizeof(float), vertices_cube, GL_STATIC_DRAW);
-    
-    // cubeVAO
-    // -------
-    unsigned int VAO_cube;
-    glGenVertexArrays(1, &VAO_cube);
-    glBindVertexArray(VAO_cube);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cube);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    
-    // squareVBO
-    // ---------
-    float* vertices_square = nullptr;
-    getSquare(vertices_square);
-    
-    unsigned int VBO_square;
-    glGenBuffers(1, &VBO_square);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_square);
-    glBufferData(GL_ARRAY_BUFFER, 48 * sizeof(float), vertices_square, GL_STATIC_DRAW);
-    
-    // squareVAO
-    // ---------
-    unsigned int VAO_square;
-    glGenVertexArrays(1, &VAO_square);
-    glBindVertexArray(VAO_square);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    
-    // Cubemap VAO, VBO
-    // ----------------
-    float* vertices_cubemap = nullptr;
-    getCubeMap(vertices_cubemap);
-    
-    unsigned int VBO_cubemap;
-    glGenBuffers(1, &VBO_cubemap);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_cubemap);
-    glBufferData(GL_ARRAY_BUFFER, 108 * sizeof(float), vertices_cubemap, GL_STATIC_DRAW);
-    
-    unsigned int VAO_cubemap;
-    glGenVertexArrays(1, &VAO_cubemap);
-    glBindVertexArray(VAO_cubemap);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    // Create VAO and VBO
+    auto [VBO_cube, VAO_cube] = get_cube_globjects();
+    auto [VBO_square, VAO_square] = get_square_globjects();
+    auto [VBO_cubemap, VAO_cubemap] = get_cubemap_globjects();
     
     // Generate texture
     // ----------------
@@ -324,7 +258,7 @@ int main()
         blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
         blinnphongshader_shadow.setMat4f("lightView", lightView);
         blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
-        blinnphongshader_shadow.setInt("imgui_shadowtype", imgui_shadowtype);
+        blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture_cube);
         glActiveTexture(GL_TEXTURE1);
@@ -363,33 +297,7 @@ int main()
         
         // Start the Dear ImGui frame
         // --------------------------
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        // 1. Show the big demo window
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        ImGui::Begin("Rendering settings");
-        
-        const char* items[] = {
-            "vanilla",
-            "percentage-closer filtering (PCF)",
-            "percentage colser soft shadows (PCSS)"
-        };
-        ImGui::Combo("Shadow mapping type", &imgui_shadowtype, items, IM_ARRAYSIZE(items));
-        
-        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        ImGui::End();
-
-        // Rendering
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        // -----------------------------------------------------------------
-        
+        myimgui.newframe();
         
         // MVP matrixes
         // ------------
