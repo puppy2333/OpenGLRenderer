@@ -8,8 +8,9 @@
 #ifndef texture_h
 #define texture_h
 
-void genTexture(unsigned int& texture, std::string path, GLenum handle_edge)
+unsigned int genTexture(std::string path, GLenum handle_edge)
 {
+    unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
     
@@ -39,10 +40,13 @@ void genTexture(unsigned int& texture, std::string path, GLenum handle_edge)
     }
     
     stbi_image_free(data);
+    
+    return texture;
 }
 
-void genCubeMapTexture(unsigned int& texture, std::vector<std::string> faces)
+unsigned int genCubeMapTexture(std::vector<std::string> faces)
 {
+    unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
     
@@ -63,10 +67,13 @@ void genCubeMapTexture(unsigned int& texture, std::vector<std::string> faces)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+    return texture;
 }
 
-void genFrameBufferColorTexture(unsigned int& texture)
+unsigned int genFrameBufferColorTexture()
 {
+    unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -74,10 +81,13 @@ void genFrameBufferColorTexture(unsigned int& texture)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    return texture;
 }
 
-void genFrameBufferDepthTexture(unsigned int& texture)
+unsigned int genFrameBufferDepthTexture()
 {
+    unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -92,6 +102,8 @@ void genFrameBufferDepthTexture(unsigned int& texture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    
+    return texture;
 }
 
 #endif /* texture_h */

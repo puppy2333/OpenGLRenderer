@@ -105,22 +105,15 @@ int main()
     // Create VAO and VBO
     auto [VBO_cube, VAO_cube] = get_cube_globjects();
     auto [VBO_square, VAO_square] = get_square_globjects();
-    auto [VBO_cubemap, VAO_cubemap] = get_cubemap_globjects();
+    //auto [VBO_cubemap, VAO_cubemap] = get_cubemap_globjects();
     
     // Generate texture
     // ----------------
-    unsigned int texture_cube, texture_cube_specular;
-    genTexture(texture_cube, prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
-    genTexture(texture_cube_specular, prefix + "media/container2_specular.png", GL_CLAMP_TO_EDGE);
-    
-    unsigned int texture_floor;
-    genTexture(texture_floor, prefix + "media/wall.jpg", GL_REPEAT);
-    
-    unsigned int texture_grass;
-    genTexture(texture_grass, prefix + "media/grass.png", GL_CLAMP_TO_EDGE);
-    
-    unsigned int texture_window;
-    genTexture(texture_window, prefix + "media/blending_transparent_window.png", GL_CLAMP_TO_EDGE);
+    unsigned int texture_cube = genTexture(prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
+    //unsigned int texture_cube_specular = genTexture(prefix + "media/container2_specular.png", GL_CLAMP_TO_EDGE);
+    unsigned int texture_floor = genTexture(prefix + "media/wall.jpg", GL_REPEAT);
+    //unsigned int texture_grass = genTexture(prefix + "media/grass.png", GL_CLAMP_TO_EDGE);
+    //unsigned int texture_window = genTexture(prefix + "media/blending_transparent_window.png", GL_CLAMP_TO_EDGE);
 
     std::vector<std::string> faces {
         prefix + "media/skybox/right.jpg",
@@ -130,8 +123,7 @@ int main()
         prefix + "media/skybox/front.jpg",
         prefix + "media/skybox/back.jpg"
     };
-    unsigned int texture_cubemap;
-    genCubeMapTexture(texture_cubemap, faces);
+    //unsigned int texture_cubemap = genCubeMapTexture(faces);
     
     // transparent window locations
     // ----------------------------
@@ -148,8 +140,7 @@ int main()
     unsigned int FBO_depthmap;
     glGenFramebuffers(1, &FBO_depthmap);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
-        unsigned int texture_depth_framebuffer;
-        genFrameBufferDepthTexture(texture_depth_framebuffer);
+        unsigned int texture_depth_framebuffer = genFrameBufferDepthTexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture_depth_framebuffer, 0);
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
