@@ -46,6 +46,8 @@ public:
             ImGui::ShowDemoWindow(&show_demo_window);
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::SetNextWindowSize(ImVec2(500, 100));
         ImGui::Begin("Rendering settings");
         
         const char* items[] = {
