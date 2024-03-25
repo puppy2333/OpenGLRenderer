@@ -1,4 +1,10 @@
 #version 330 core
+
+#define PI 3.1415927
+#define TWOPI 6.2831853
+#define INV_PI 0.3183099
+#define INV_TWOPI 0.1591549
+
 out vec4 FragColor;
 
 in VS_OUT {
@@ -16,6 +22,9 @@ uniform vec3 viewPos;
 
 uniform int imgui_shadowtype;
 
+// --------------------------------------------
+// ---------- For shadow calculation ----------
+// --------------------------------------------
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -121,25 +130,36 @@ float PCSSShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-void main()
+// ------------------------------------------
+// ---------- For direct lightning ----------
+// ------------------------------------------
+vec3 evalAmbient(vec3 color)
 {
-    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
-    vec3 normal = normalize(fs_in.Normal);
-    vec3 lightColor = vec3(1.0);
-    // Ambient
-    vec3 ambient = 0.3 * color;
+    return 0.15 * color;
+}
+
+vec3 evalDiffuse(vec3 lightDir, vec3 color, vec3 normal)
+{
     // Diffuse
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = diff * color;
+    return diffuse;
+}
+
+vec3 evalSpecular(vec3 lightDir, vec3 color, vec3 normal)
+{
     // Specular
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = 0.0;
     vec3 halfwayDir = normalize(lightDir + viewDir);
     spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * lightColor;
-    
+    vec3 specular = spec * color;
+    return specular;
+}
+
+vec3 evalDirectLight(vec3 lightColor, vec3 lightDir, vec3 normal)
+{
     // Calculate shadow
     float shadow = 0;
     if (imgui_shadowtype == 0) {
@@ -151,8 +171,22 @@ void main()
     else if (imgui_shadowtype == 2) {
         shadow = PCSSShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
     }
-    
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+    return (1.0 - shadow) * lightColor;
+}
 
+void main()
+{
+    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
+    vec3 normal = normalize(fs_in.Normal);
+    vec3 lightColor = vec3(1.0);
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    
+    // Direct lightning
+    vec3 ambientBRDF = evalAmbient(color);
+    vec3 diffuseBRDF = evalDiffuse(lightDir, color, normal);
+    vec3 specularBRDF = evalSpecular(lightDir, color, normal);
+    vec3 directLight =evalDirectLight(lightColor, lightDir, normal);
+    vec3 lighting = ambientBRDF * lightColor + (diffuseBRDF + specularBRDF) * directLight;
+    
     FragColor = vec4(lighting, 1.0f);
 }
