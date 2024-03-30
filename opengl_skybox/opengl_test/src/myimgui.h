@@ -13,8 +13,10 @@ class MyImgui
 public:
     bool show_demo_window;
     int imgui_shadowtype;
+    // Screen space reflection
+    bool ssr; 
     
-    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, int in_imgui_shadowtype=0)
+    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, int in_imgui_shadowtype=0, bool in_ssr=false)
     {
         // Setup Dear ImGui context
         // ------------------------
@@ -31,6 +33,7 @@ public:
         
         show_demo_window = in_show_demo_window;
         imgui_shadowtype = in_imgui_shadowtype;
+        ssr = in_ssr;
     };
     
     void newframe()

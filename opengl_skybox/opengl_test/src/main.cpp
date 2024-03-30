@@ -36,7 +36,7 @@
 #include "texture.h"
 #include "callbacks.h"
 #include "utils.h"
-#include "globjects.h"
+//#include "globjects.h"
 #include "myimgui.h"
 
 int main()
@@ -93,6 +93,7 @@ int main()
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
     Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
+    Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
     
     // Determine light position
     // ------------------------
@@ -102,11 +103,6 @@ int main()
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
     
-    // Create VAO and VBO
-    auto [VBO_cube, VAO_cube] = get_cube_globjects();
-    auto [VBO_square, VAO_square] = get_square_globjects();
-    //auto [VBO_cubemap, VAO_cubemap] = get_cubemap_globjects();
-    
     // Generate texture
     // ----------------
     unsigned int texture_cube = genTexture(prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
@@ -115,6 +111,27 @@ int main()
     //unsigned int texture_grass = genTexture(prefix + "media/grass.png", GL_CLAMP_TO_EDGE);
     //unsigned int texture_window = genTexture(prefix + "media/blending_transparent_window.png", GL_CLAMP_TO_EDGE);
 
+    // Generate objects
+    // ----------------
+    Cubes cubes;
+    Quads quads;
+    
+    glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    cube_model = glm::scale(cube_model, glm::vec3(1.0f, 2.0f, 1.0f));
+    cubes.addObject(cube_model, texture_cube);
+    
+    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
+    cubes.addObject(cube_model, texture_cube);
+    
+    cube_model = glm::translate(glm::mat4(1.0f), light.Position);
+    cube_model = glm::scale(cube_model, glm::vec3(0.5f, 0.5f, 0.5f));
+    cubes.addObject(cube_model, texture_cube);
+    
+    glm::mat4 floor_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    floor_model =glm::translate(floor_model, glm::vec3(0.0f, 0.0f, 6.0f));
+    floor_model = glm::scale(floor_model, glm::vec3(10.0f, 10.0f, 10.0f));
+    quads.addObject(floor_model, texture_floor);
+    
     std::vector<std::string> faces {
         prefix + "media/skybox/right.jpg",
         prefix + "media/skybox/left.jpg",
@@ -135,8 +152,8 @@ int main()
         glm::vec3( 0.5f, 0.0f, -1.6f)
     };
     
-    // Frame buffer
-    // ------------
+    // Shadow map
+    // ----------
     unsigned int FBO_depthmap;
     glGenFramebuffers(1, &FBO_depthmap);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
@@ -148,6 +165,45 @@ int main()
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // G-Buffer
+    // --------
+    GLuint gBuffer = -1;
+    GLuint gPosition, gNormal, gAlbedoSpec;
+    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+
+    if (myimgui.ssr) {
+        glGenFramebuffers(1, &gBuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+        
+        // Position buffer
+        glGenTextures(1, &gPosition);
+        glBindTexture(GL_TEXTURE_2D, gPosition);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+        // Normal buffer
+        glGenTextures(1, &gNormal);
+        glBindTexture(GL_TEXTURE_2D, gNormal);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+        // Texture and specular value
+        glGenTextures(1, &gAlbedoSpec);
+        glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+
+        // Tell OpenGL we are using color 123 to render
+        glDrawBuffers(3, attachments);
+        
+    }
     
     // OpenGL tests
     // ---------------------
@@ -191,8 +247,8 @@ int main()
         // input
         processInput(window);
         
-        // 1. Render to frame buffer
-        // ------------------------
+        // 1. Render shadow map to frame buffer
+        // ------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
         glEnable(GL_DEPTH_TEST);
         //glEnable(GL_CULL_FACE);
@@ -200,91 +256,113 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
     
-            // Configure depth map
-            //GLfloat near_plane = 1.0f, far_plane = 15.0f;
-            //glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, near_plane, far_plane);
-            glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
-            glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::mat4 model = glm::mat4(1.0f);
+        // Configure depth map
+        glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
+        glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        
+        // Render cube
+        depthmapshader.use();
+        depthmapshader.setMat4f("lightProjection", lightProjection);
+        depthmapshader.setMat4f("lightView", lightView);
+        depthmapshader.setMat4f("model", cubes.models[0]);
+        cubes.render();
+    
+        // Render cube2
+        depthmapshader.setMat4f("model", cubes.models[1]);
+        cubes.render();
+    
+        // Render floor
+        depthmapshader.setMat4f("model", quads.models[0]);
+        quads.render();
+        
+        // Render to screen
+        // ----------------
+        if (not myimgui.ssr) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            
+            glEnable(GL_DEPTH_TEST);
+
+            // Render cube
+            glm::mat4 view = ourcamera.GetViewMatrix();
+            blinnphongshader_shadow.setMVP(cubes.models[0], view);
+            blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
+            blinnphongshader_shadow.setMat4f("lightView", lightView);
+            blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
+            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            cubes.render();
+            
+            // Render cube2
+            blinnphongshader_shadow.setMVP(cubes.models[1], view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            cubes.render();
+            
+            // Render light
+            lightshader.setMVP(cubes.models[2], view);
+            cubes.render();
+            
+            // Render floor
+            blinnphongshader_shadow.setMVP(quads.models[0], view);
+            glActiveTexture(GL_TEXTURE0); // bind floor texture
+            glBindTexture(GL_TEXTURE_2D, texture_floor);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            quads.render();
+        }
+        // 2. geometry pass: render scene's geometry/color data into gbuffer
+        // -----------------------------------------------------------------
+        else {
+            glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_DEPTH_TEST);
+            glm::mat4 view = ourcamera.GetViewMatrix();
             
             // Render cube
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(1.0f, 2.0f, 1.0f));
-            depthmapshader.use();
-            depthmapshader.setMat4f("lightProjection", lightProjection);
-            depthmapshader.setMat4f("lightView", lightView);
-            depthmapshader.setMat4f("model", model);
-            glBindVertexArray(VAO_cube);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        
+            blinnphongshader_shadow.setMVP(cubes.models[0], view);
+            blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
+            blinnphongshader_shadow.setMat4f("lightView", lightView);
+            blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
+            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            cubes.render();
+            
             // Render cube2
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
-            depthmapshader.use();
-            depthmapshader.setMat4f("model", model);
-            glBindVertexArray(VAO_cube);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        
+            blinnphongshader_shadow.setMVP(cubes.models[1], view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            cubes.render();
+            
+            // Render light
+            lightshader.setMVP(cubes.models[2], view);
+            cubes.render();
+            
             // Render floor
-            model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
-            depthmapshader.setMat4f("model", model);
-            glBindVertexArray(VAO_square);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            blinnphongshader_shadow.setMVP(quads.models[0], view);
+            glActiveTexture(GL_TEXTURE0); // bind floor texture
+            glBindTexture(GL_TEXTURE_2D, texture_floor);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            quads.render();
+            
+            // Draw
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
         
-        // 2. Render to screen
-        //glDisable(GL_CULL_FACE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        glEnable(GL_DEPTH_TEST);
-
-        // Render cube
-        model = glm::mat4(1.0f);
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 2.0f, 1.0f));
-        glm::mat4 view = ourcamera.GetViewMatrix();
-        blinnphongshader_shadow.setMVP(model, view);
-        blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
-        blinnphongshader_shadow.setMat4f("lightView", lightView);
-        blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
-        blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_cube);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-        glBindVertexArray(VAO_cube);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
         
-        // Render cube2
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
-        blinnphongshader_shadow.setMVP(model, view);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture_cube);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-        glBindVertexArray(VAO_cube);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        // Render light
-        model = glm::translate(glm::mat4(1.0f), light.Position);
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-        lightshader.setMVP(model, view);
-        glBindVertexArray(VAO_cube);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        // Render floor
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
-        blinnphongshader_shadow.setMVP(model, view);
-        glBindVertexArray(VAO_square);
-        glActiveTexture(GL_TEXTURE0); // bind floor texture
-        glBindTexture(GL_TEXTURE_2D, texture_floor);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
         
         // Start the Dear ImGui frame
         // --------------------------
@@ -403,10 +481,6 @@ int main()
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    glDeleteVertexArrays(1, &VAO_cube);
-    glDeleteVertexArrays(1, &VAO_square);
-    glDeleteBuffers(1, &VBO_cube);
-    glDeleteBuffers(1, &VBO_square);
     cubeshader.del();
     lightshader.del();
 
