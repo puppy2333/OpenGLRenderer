@@ -169,75 +169,34 @@ int main()
     
     // G-Buffer
     // --------
-//    GLuint gBuffer = -1;
-//    GLuint gPosition = 0, gNormal = 0, gAlbedoSpec = 0;
-//    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-//
-//    glGenFramebuffers(1, &gBuffer);
-//    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-//        // Position buffer
-//        gPosition = genGBufferRGB16FTexture();
-//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-//        // Normal buffer
-//        gNormal = genGBufferRGB16FTexture();
-//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-//        // Texture and specular value
-//        gAlbedoSpec = genGBufferRGBATexture();
-//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-//        // Tell OpenGL we are using color 123 to render
-//        glDrawBuffers(3, attachments);
-//        // Depth render buffer
-//        unsigned int rboDepth;
-//        glGenRenderbuffers(1, &rboDepth);
-//        glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-//            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
-//            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-//        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-//        // finally check if framebuffer is complete
-//        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//            std::cout << "Framebuffer not complete!" << std::endl;
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
-    // configure g-buffer framebuffer
-        // ------------------------------
-        unsigned int gBuffer;
-        glGenFramebuffers(1, &gBuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-        unsigned int gPosition, gNormal, gAlbedoSpec;
-        // position color buffer
-        glGenTextures(1, &gPosition);
-        glBindTexture(GL_TEXTURE_2D, gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    GLuint gBuffer = -1;
+    GLuint gPosition = 0, gNormal = 0, gAlbedoSpec = 0;
+    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+
+    glGenFramebuffers(1, &gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+        // Position buffer
+        gPosition = genGBufferRGBA16FTexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-        // normal color buffer
-        glGenTextures(1, &gNormal);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // Normal buffer
+        gNormal = genGBufferRGBA16FTexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-        // color + specular color buffer
-        glGenTextures(1, &gAlbedoSpec);
-        glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // Texture and specular value
+        gAlbedoSpec = genGBufferRGBATexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-        // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-        unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+        // Tell OpenGL we are using color 123 to render
         glDrawBuffers(3, attachments);
-        // create and attach depth buffer (renderbuffer)
+        // Depth render buffer
         unsigned int rboDepth;
         glGenRenderbuffers(1, &rboDepth);
         glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
         // finally check if framebuffer is complete
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             std::cout << "Framebuffer not complete!" << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     // OpenGL tests
     // ---------------------
