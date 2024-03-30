@@ -94,6 +94,7 @@ int main()
     Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
     Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
+    Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
     
     // Determine light position
     // ------------------------
@@ -127,9 +128,9 @@ int main()
     cube_model = glm::scale(cube_model, glm::vec3(0.5f, 0.5f, 0.5f));
     cubes.addObject(cube_model, texture_cube);
     
-    glm::mat4 floor_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    floor_model =glm::translate(floor_model, glm::vec3(0.0f, 0.0f, 6.0f));
-    floor_model = glm::scale(floor_model, glm::vec3(10.0f, 10.0f, 10.0f));
+    glm::mat4 floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
     quads.addObject(floor_model, texture_floor);
     
     std::vector<std::string> faces {
@@ -168,42 +169,75 @@ int main()
     
     // G-Buffer
     // --------
-    GLuint gBuffer = -1;
-    GLuint gPosition, gNormal, gAlbedoSpec;
-    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-
-    if (myimgui.ssr) {
+//    GLuint gBuffer = -1;
+//    GLuint gPosition = 0, gNormal = 0, gAlbedoSpec = 0;
+//    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+//
+//    glGenFramebuffers(1, &gBuffer);
+//    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+//        // Position buffer
+//        gPosition = genGBufferRGB16FTexture();
+//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+//        // Normal buffer
+//        gNormal = genGBufferRGB16FTexture();
+//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+//        // Texture and specular value
+//        gAlbedoSpec = genGBufferRGBATexture();
+//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+//        // Tell OpenGL we are using color 123 to render
+//        glDrawBuffers(3, attachments);
+//        // Depth render buffer
+//        unsigned int rboDepth;
+//        glGenRenderbuffers(1, &rboDepth);
+//        glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+//            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
+//            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+//        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+//        // finally check if framebuffer is complete
+//        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+//            std::cout << "Framebuffer not complete!" << std::endl;
+//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // configure g-buffer framebuffer
+        // ------------------------------
+        unsigned int gBuffer;
         glGenFramebuffers(1, &gBuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-        
-        // Position buffer
+        unsigned int gPosition, gNormal, gAlbedoSpec;
+        // position color buffer
         glGenTextures(1, &gPosition);
         glBindTexture(GL_TEXTURE_2D, gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-        // Normal buffer
+        // normal color buffer
         glGenTextures(1, &gNormal);
         glBindTexture(GL_TEXTURE_2D, gNormal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-        // Texture and specular value
+        // color + specular color buffer
         glGenTextures(1, &gAlbedoSpec);
         glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
-
-        // Tell OpenGL we are using color 123 to render
+        // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+        unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
         glDrawBuffers(3, attachments);
-        
-    }
+        // create and attach depth buffer (renderbuffer)
+        unsigned int rboDepth;
+        glGenRenderbuffers(1, &rboDepth);
+        glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+        // finally check if framebuffer is complete
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
     // OpenGL tests
     // ---------------------
@@ -240,6 +274,14 @@ int main()
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setInt("diffuseTexture", 0);
     blinnphongshader_shadow.setInt("shadowMap", 1);
+    // -----------------
+    gbuffershader.use();
+    gbuffershader.setInt("texture_diffuse1", 0);
+    // -----------------
+    deferredrendershader.use();
+    deferredrendershader.setInt("gPosition", 0);
+    deferredrendershader.setInt("gNormal", 1);
+    deferredrendershader.setInt("gAlbedoSpec", 2);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -275,9 +317,9 @@ int main()
         depthmapshader.setMat4f("model", quads.models[0]);
         quads.render();
         
-        // Render to screen
+        // Normal rendering
         // ----------------
-        if (not myimgui.ssr) {
+        if (myimgui.rendertype == 0) {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -290,7 +332,7 @@ int main()
             blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
             blinnphongshader_shadow.setMat4f("lightView", lightView);
             blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
-            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
+            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture_cube);
             glActiveTexture(GL_TEXTURE1);
@@ -317,163 +359,54 @@ int main()
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             quads.render();
         }
-        // 2. geometry pass: render scene's geometry/color data into gbuffer
-        // -----------------------------------------------------------------
-        else {
+        // Deferred rendering
+        // ------------------
+        else if (myimgui.rendertype == 1) {
+            // Render to GBuffer
+            // -----------------
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glm::mat4 view = ourcamera.GetViewMatrix();
             
-            // Render cube
-            blinnphongshader_shadow.setMVP(cubes.models[0], view);
-            blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
-            blinnphongshader_shadow.setMat4f("lightView", lightView);
-            blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
-            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.imgui_shadowtype);
+            gbuffershader.setMVP(cubes.models[0], view);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture_cube);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            glBindTexture(GL_TEXTURE_2D, cubes.textures[0]);
             cubes.render();
             
-            // Render cube2
-            blinnphongshader_shadow.setMVP(cubes.models[1], view);
+            gbuffershader.setModelMat(cubes.models[1]);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture_cube);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            glBindTexture(GL_TEXTURE_2D, cubes.textures[1]);
             cubes.render();
             
-            // Render light
-            lightshader.setMVP(cubes.models[2], view);
-            cubes.render();
-            
-            // Render floor
-            blinnphongshader_shadow.setMVP(quads.models[0], view);
-            glActiveTexture(GL_TEXTURE0); // bind floor texture
-            glBindTexture(GL_TEXTURE_2D, texture_floor);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            gbuffershader.setModelMat(quads.models[0]);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
             quads.render();
-            
-            // Draw
+    
+            // Render to screen
+            // ----------------
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            deferredrendershader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            // send light relevant uniforms
+            deferredrendershader.setVec3f("lightPos", light.Position);
+            deferredrendershader.setVec3f("viewPos", ourcamera.Position);
+            
+            // finally render quad
+            quads.render();
         }
-        
-        
-        
         
         // Start the Dear ImGui frame
         // --------------------------
         myimgui.newframe();
-        
-        // MVP matrixes
-        // ------------
-        //glm::mat4 model = glm::mat4(1.0f);
-        //glm::mat4 view = ourcamera.GetViewMatrix();
-        //glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
-        
-//            // Cube
-//            // ----
-//            model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f));
-//            cubeshader.setMVP(model, view);
-//            cubeshader.setVec3f("viewPos", ourcamera.Position);
-//            glBindVertexArray(VAO_cube);
-//            glActiveTexture(GL_TEXTURE0); // bind diffuse map
-//            glBindTexture(GL_TEXTURE_2D, texture_cube);
-//            glActiveTexture(GL_TEXTURE1); // bind specular map
-//            glBindTexture(GL_TEXTURE_2D, texture_cube_specular);
-//            glDrawArrays(GL_TRIANGLES, 0, 36);
-//
-//            // Light
-//            // -----
-//            model = glm::translate(glm::mat4(1.0f), light.Position);
-//            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-//            lightshader.setMVP(model, view);
-//            glBindVertexArray(VAO_cube);
-//            glDrawArrays(GL_TRIANGLES, 0, 36);
-//
-//            // Floor
-//            // -----
-//            model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-//            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-//            model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-//            floorshader.setMVP(model, view);
-//            floorshader.setVec3f("viewPos", ourcamera.Position);
-//            glBindVertexArray(VAO_square);
-//            glActiveTexture(GL_TEXTURE0); // bind floor texture
-//            glBindTexture(GL_TEXTURE_2D, texture_floor);
-//            glDrawArrays(GL_TRIANGLES, 0, 6);
- 
-        // Skybox
-        // ------
-//        glDepthFunc(GL_LEQUAL);
-//        cubemapshader.use();
-//        glm::mat4 view_cubemap = glm::mat4(glm::mat3(view));
-//        cubemapshader.setMat4f("view", view_cubemap);
-//        cubemapshader.setMat4f("projection", projection);
-//        glBindVertexArray(VAO_cubemap);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-//        glDepthFunc(GL_LESS);
-        
-        // Reflect object
-        // --------------
-//        model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.5f, 0.0f));
-//        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-//        reflectshader.setMVP(model, view);
-//        reflectshader.setVec3f("cameraPos", ourcamera.Position);
-//        glBindVertexArray(VAO_cube);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        // Refract object
-        // --------------
-//        model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.5f, 0.0f));
-//        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
-//        refractshader.setMVP(model, view);
-//        refractshader.setVec3f("cameraPos", ourcamera.Position);
-//        glBindVertexArray(VAO_cube);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_cubemap);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        // Grass
-        // -----
-//        model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-//        model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-//        cubeshader.setMVP(model, view);
-//        cubeshader.setVec3f("viewPos", ourcamera.Position);
-//        glBindVertexArray(VAO_square);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, texture_grass);
-//        glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        // Window
-        // sort the transparent windows before rendering
-        // ---------------------------------------------
-//        transparentshader.setMVP(model, view);
-//        transparentshader.setVec3f("viewPos", ourcamera.Position);
-//        glBindVertexArray(VAO_square);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, texture_window);
-//        
-//        std::map<float, glm::vec3> sorted;
-//        for (unsigned int i = 0; i < windows.size(); i++) {
-//            float distance = glm::length(ourcamera.Position - windows[i]);
-//            sorted[distance] = windows[i];
-//        }
-//        
-//        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it) {
-//            model = glm::mat4(1.0f);
-//            model = glm::translate(model, it->second);
-//            model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-//            transparentshader.setMat4f("model", model);
-//            glDrawArrays(GL_TRIANGLES, 0, 6);
-//        }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
@@ -487,18 +420,4 @@ int main()
     // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
-}
-
-void codebuffer()
-{
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-//    glClear(GL_COLOR_BUFFER_BIT);
-//
-//    screenshader.use();
-//    glBindVertexArray(VAO_square);
-//    glDisable(GL_DEPTH_TEST);
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-//    glDrawArrays(GL_TRIANGLES, 0, 6);
 }

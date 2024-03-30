@@ -124,6 +124,15 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
     }
     // ------------------------------------------------------------------------
+    void setModelMat(glm::mat4 &mat)
+    {
+        setMat4f("model", mat);
+    }
+    void setViewMat(glm::mat4 &mat)
+    {
+        setMat4f("view", mat);
+    }
+    // ------------------------------------------------------------------------
     void setMVP(glm::mat4 &model, glm::mat4 &view)
     {
         glm::mat4 projMat = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);

@@ -65,6 +65,7 @@ class Quads: public Objects
 public:
     Quads() {
         _getQuad();
+        _getVBOVAO();
     };
     void _getQuad();
     void _getVBOVAO() override;
@@ -78,6 +79,7 @@ class Skyboxes: public Objects
 public:
     Skyboxes() {
         _getSkybox();
+        _getVBOVAO();
     };
     void _getSkybox();
     void _getVBOVAO() override;
@@ -253,12 +255,21 @@ void Quads::_getQuad()
     vertexarray = new float[48] {
     //  ------- pos ------- ----- normal ----- -- texture --
         -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f,
-         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  5.0f,  0.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  5.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  5.0f,
-         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  5.0f,  0.0f,
-         1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  5.0f,  5.0f,
+         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
+         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
+         1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
     };
+//    vertexarray = new float[48] {
+//    //  ------- pos ------- ----- normal ----- -- texture --
+//        -0.1f, -0.8f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f,
+//         0.2f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
+//        -0.4f,  0.7f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
+//        -0.3f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
+//         0.9f, -0.9f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
+//         0.8f,  0.4f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
+//    };
 }
 
 void Skyboxes::_getSkybox()

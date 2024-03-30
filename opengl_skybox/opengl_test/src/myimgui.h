@@ -12,11 +12,11 @@ class MyImgui
 {
 public:
     bool show_demo_window;
-    int imgui_shadowtype;
+    int shadowtype;
     // Screen space reflection
-    bool ssr; 
+    int rendertype;
     
-    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, int in_imgui_shadowtype=0, bool in_ssr=false)
+    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, int in_shadowtype=0, bool in_rendertype=false)
     {
         // Setup Dear ImGui context
         // ------------------------
@@ -32,8 +32,8 @@ public:
         ImGui_ImplOpenGL3_Init(glsl_version);
         
         show_demo_window = in_show_demo_window;
-        imgui_shadowtype = in_imgui_shadowtype;
-        ssr = in_ssr;
+        shadowtype = in_shadowtype;
+        rendertype = in_rendertype;
     };
     
     void newframe()
@@ -50,15 +50,21 @@ public:
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::SetNextWindowSize(ImVec2(500, 100));
+        ImGui::SetNextWindowSize(ImVec2(500, 140));
         ImGui::Begin("Rendering settings");
         
-        const char* items[] = {
+        const char* shadowtype_list[] = {
             "vanilla",
             "percentage-closer filtering (PCF)",
             "percentage colser soft shadows (PCSS)"
         };
-        ImGui::Combo("Shadow mapping type", &imgui_shadowtype, items, IM_ARRAYSIZE(items));
+        ImGui::Combo("Shadow mapping type", &shadowtype, shadowtype_list, IM_ARRAYSIZE(shadowtype_list));
+        
+        const char* rendertype_list[] = {
+            "direct lightning",
+            "screen space ray tracing"
+        };
+        ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
