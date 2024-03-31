@@ -377,6 +377,9 @@ int main()
             // send light relevant uniforms
             deferredrendershader.setVec3f("lightPos", light.Position);
             deferredrendershader.setVec3f("viewPos", ourcamera.Position);
+            glm::mat4 projMat = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
+            glm::mat4 vpmat = projMat * view;
+            deferredrendershader.setMat4f("VPMatrix", vpmat);
             
             // finally render quad
             quads.render();

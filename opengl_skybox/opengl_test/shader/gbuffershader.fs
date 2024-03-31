@@ -158,7 +158,7 @@ void main()
     
     gShadow.r = shadow;
 //    gShadow.r = 1.0f;
-    gShadow.g = 1.0f;
+    gShadow.g = gl_FragCoord.z;
     gShadow.b = 1.0f;
     gShadow.a = 1.0f;
     //gShadow.gba = vec3(1.0f);
