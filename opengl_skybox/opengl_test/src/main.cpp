@@ -170,8 +170,8 @@ int main()
     // G-Buffer
     // --------
     GLuint gBuffer = -1;
-    GLuint gPosition = 0, gNormal = 0, gAlbedoSpec = 0;
-    GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    GLuint gPosition = 0, gNormal = 0, gAlbedoSpec = 0, gShadow = 0;
+    GLuint attachments[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
 
     glGenFramebuffers(1, &gBuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
@@ -184,8 +184,11 @@ int main()
         // Texture and specular value
         gAlbedoSpec = genGBufferRGBATexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
+        // Texture and specular value
+        gShadow = genGBufferRGBA16FTexture();
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, gShadow, 0);
         // Tell OpenGL we are using color 123 to render
-        glDrawBuffers(3, attachments);
+        glDrawBuffers(4, attachments);
         // Depth render buffer
         unsigned int rboDepth;
         glGenRenderbuffers(1, &rboDepth);
@@ -230,17 +233,28 @@ int main()
     screenshader.use();
     screenshader.setInt("screenTexture", 0);
     // -----------------
+    glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
+    glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    depthmapshader.use();
+    depthmapshader.setMat4f("lightProjection", lightProjection);
+    depthmapshader.setMat4f("lightView", lightView);
+    // -----------------
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setInt("diffuseTexture", 0);
     blinnphongshader_shadow.setInt("shadowMap", 1);
     // -----------------
     gbuffershader.use();
     gbuffershader.setInt("texture_diffuse1", 0);
+    gbuffershader.setInt("shadowMap", 1);
+    gbuffershader.setVec3f("lightPos", light.Position);
+    gbuffershader.setMat4f("lightProjection", lightProjection);
+    gbuffershader.setMat4f("lightView", lightView);
     // -----------------
     deferredrendershader.use();
     deferredrendershader.setInt("gPosition", 0);
     deferredrendershader.setInt("gNormal", 1);
     deferredrendershader.setInt("gAlbedoSpec", 2);
+    deferredrendershader.setInt("gShadow", 3);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -257,14 +271,8 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
     
-        // Configure depth map
-        glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 100.0f);
-        glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        
         // Render cube
         depthmapshader.use();
-        depthmapshader.setMat4f("lightProjection", lightProjection);
-        depthmapshader.setMat4f("lightView", lightView);
         depthmapshader.setMat4f("model", cubes.models[0]);
         cubes.render();
     
@@ -293,7 +301,7 @@ int main()
             blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
             blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glBindTexture(GL_TEXTURE_2D, cubes.textures[0]);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             cubes.render();
@@ -301,7 +309,7 @@ int main()
             // Render cube2
             blinnphongshader_shadow.setMVP(cubes.models[1], view);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texture_cube);
+            glBindTexture(GL_TEXTURE_2D, cubes.textures[1]);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             cubes.render();
@@ -313,7 +321,7 @@ int main()
             // Render floor
             blinnphongshader_shadow.setMVP(quads.models[0], view);
             glActiveTexture(GL_TEXTURE0); // bind floor texture
-            glBindTexture(GL_TEXTURE_2D, texture_floor);
+            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             quads.render();
@@ -326,21 +334,30 @@ int main()
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
             glEnable(GL_DEPTH_TEST);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            gbuffershader.use();
+            gbuffershader.setVec3f("viewPos", ourcamera.Position);
+            gbuffershader.setInt("imgui_shadowtype", myimgui.shadowtype);
             glm::mat4 view = ourcamera.GetViewMatrix();
             
             gbuffershader.setMVP(cubes.models[0], view);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, cubes.textures[0]);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             cubes.render();
             
             gbuffershader.setModelMat(cubes.models[1]);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, cubes.textures[1]);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             cubes.render();
             
             gbuffershader.setModelMat(quads.models[0]);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             quads.render();
     
             // Render to screen
@@ -351,10 +368,12 @@ int main()
             deferredrendershader.use();
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, gPosition);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
             // send light relevant uniforms
             deferredrendershader.setVec3f("lightPos", light.Position);
             deferredrendershader.setVec3f("viewPos", ourcamera.Position);
