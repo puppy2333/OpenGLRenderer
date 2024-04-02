@@ -14,8 +14,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Load images (texture)
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "stb_image.h"
 
 // cpp std
 #include <iostream>
@@ -28,6 +28,7 @@
 #include <imui/imgui_impl_opengl3.h>
 
 // My files
+#include "model.h"
 #include "camera.h"
 #include "shader_s.h"
 #include "objects.h"

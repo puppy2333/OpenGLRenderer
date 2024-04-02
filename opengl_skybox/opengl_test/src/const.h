@@ -8,6 +8,8 @@
 #ifndef const_h
 #define const_h
 
+#include "camera.h"
+
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
