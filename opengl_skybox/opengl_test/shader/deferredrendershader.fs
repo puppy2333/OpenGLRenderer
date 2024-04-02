@@ -20,6 +20,8 @@ uniform vec3 viewPos;
 
 uniform mat4 VPMatrix;
 
+uniform int numray;
+
 // Direct lightning
 // ----------------
 vec3 evalAmbient(vec3 color)
@@ -31,7 +33,7 @@ vec3 evalDiffuse(vec3 lightDir, vec3 color, vec3 normal)
 {
     // Diffuse
     float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color;
+    vec3 diffuse = diff * color * INV_PI;
     return diffuse;
 }
 
@@ -43,6 +45,9 @@ vec3 evalDirectLight(vec3 lightColor, float shadow)
 
 // Indirect lightning
 // ------------------
+
+// Helper functions from games202 hw3
+// –---------------------------------
 float InitRand(vec2 uv) {
     vec3 p3  = fract(vec3(uv.xyx) * .1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -93,7 +98,8 @@ vec3 LocalBasis_b2(vec3 n) {
 
 // Get depth from camera view
 float getDepth(vec3 pos_world) {
-    float depth = (VPMatrix * vec4(pos_world, 1.0)).w;
+    vec4 pos_screen = VPMatrix * vec4(pos_world, 1.0);
+    float depth = pos_screen.z / pos_screen.w * 0.5 + 0.5; 
     return depth;
 }
 
@@ -103,35 +109,32 @@ vec4 Project(vec4 a) {
 }
 
 // Position to screen space
-vec2 GetScreenCoordinate(vec3 pos_world) {
+vec2 GetScreenCoord(vec3 pos_world) {
     vec2 uv = Project(VPMatrix * vec4(pos_world, 1.0)).xy * 0.5 + 0.5;
     return uv;
 }
 
 // GbufferDepth needs to be added
 float GetGBufferDepth(vec2 uv) {
-    float depth = texture(gShadow, uv).g;
+    float depth = texture(gShadow, uv).y;
     if (depth < 1e-2) {
         depth = 1000.0;
     }
     return depth;
 }
+// –---------------------------------
 
 vec3 rayMarch(vec3 origin_point, vec3 ray_dir) {
     float dx = 0.05;
     vec3 end_point = origin_point;
-    vec3 hit_pos = vec3(-1.0f, -1.0f, -1.0f);
     
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 80; i++) {
         vec3 test_point = end_point + dx * ray_dir;
         float test_point_depth = getDepth(test_point);
-        float buffer_depth = GetGBufferDepth(GetScreenCoordinate(test_point));
-        if (dx > 40.0) {
-            return vec3(-1, -1, -1);
-        } else if (test_point_depth - buffer_depth > 1e-6) {
-            hit_pos = test_point;
-            return hit_pos;
-        } else if ( test_point_depth < buffer_depth ) {
+        float buffer_depth = GetGBufferDepth(GetScreenCoord(test_point));
+        if (test_point_depth > buffer_depth + 1e-6) {
+            return test_point;
+        } else {
             end_point = test_point;
         }
     }
@@ -145,58 +148,66 @@ void main()
     vec3 normal = texture(gNormal, TexCoords).rgb;
     vec3 color = texture(gAlbedoSpec, TexCoords).rgb;
     float shadow = texture(gShadow, TexCoords).r;
+    float depth = texture(gShadow, TexCoords).g;
     
-    vec3 lightColor = vec3(1.0);
-    vec3 lightDir = normalize(lightPos - fragPos);
-    
-    // Materials
-    vec3 ambientBRDF = evalAmbient(color);
-    vec3 diffuseBRDF = evalDiffuse(lightDir, color, normal);
-    
-    // Direct lightning
-    vec3 directLight = evalDirectLight(lightColor, shadow);
-    
-    vec3 lighting = ambientBRDF * lightColor + diffuseBRDF * directLight;
-    
-    // Indirect lightning
-    float rand_num = InitRand(gl_FragCoord.xy);
-    
-    vec3 L_indirect = vec3(0.0f, 0.0f, 0.0f);
-    
-    for (int i = 0; i < 2; i++) {
-        // Sample a light
-        float pdf = INV_TWOPI;
-        rand_num = Rand1(rand_num);
-        vec3 sampled_dir = SampleHemisphereUniform(rand_num);
+    if (depth < 1.0f) {
+        vec3 lightColor = vec3(1.0);
+        vec3 lightDir = normalize(lightPos - fragPos);
         
-        // Construct local coordinate
-        vec3 b1 = LocalBasis_b1(normal);
-        vec3 b2 = LocalBasis_b2(normal);
+        // Materials
+        // vec3 ambientBRDF = evalAmbient(color);
+        vec3 diffuseBRDF = evalDiffuse(lightDir, color, normal);
         
-        sampled_dir = normalize(mat3(b1, b2, normal) * sampled_dir);
+        // Direct lightning
+        vec3 directLight = evalDirectLight(lightColor, shadow);
         
-        // Ray trace
-        vec3 hit_pos = rayMarch(fragPos, sampled_dir);
-        if (abs(hit_pos.x + 1) > 0.0001) {
-            vec2 uv1 = GetScreenCoordinate(hit_pos);
-            vec3 colorNew = texture(gAlbedoSpec, uv1).rgb;
-            vec3 normalNew = texture(gNormal, uv1).rgb;
-            float shadowNew = texture(gShadow, uv1).r;
+        // vec3 L = ambientBRDF * lightColor + diffuseBRDF * directLight;
+        vec3 L = diffuseBRDF * directLight;
+        
+        // Indirect lightning
+        float rand_num = InitRand(gl_FragCoord.xy);
+        
+        vec3 L_indirect = vec3(0.0f, 0.0f, 0.0f);
+        
+        int num_ray = 2;
+        if (numray == 1) num_ray = 4;
+        else if (numray == 2) num_ray = 8;
+        else if (numray == 3) num_ray = 16;
+        
+        for (int i = 0; i < num_ray; i++) {
+            // Sample a light
+            float pdf = INV_TWOPI;
+            rand_num = Rand1(rand_num);
+            vec3 sampled_dir = SampleHemisphereUniform(rand_num);
             
-            L_indirect += evalDiffuse(sampled_dir, color, normal) / pdf * evalDiffuse(lightDir, colorNew, normalNew) * evalDirectLight(lightColor, shadowNew);
+            // Construct local coordinate
+            vec3 b1 = LocalBasis_b1(normal);
+            vec3 b2 = LocalBasis_b2(normal);
+            
+            sampled_dir = normalize(mat3(b1, b2, normal) * sampled_dir);
+            
+            // Ray trace
+            vec3 hit_pos = rayMarch(fragPos, sampled_dir);
+            if (abs(hit_pos.x + 1) > 0.0001) {
+                vec2 uv_new = GetScreenCoord(hit_pos);
+                vec3 color_new = texture(gAlbedoSpec, uv_new).rgb;
+                vec3 normal_new = texture(gNormal, uv_new).rgb;
+                float shadow_new = texture(gShadow, uv_new).r;
+                vec3 lightdir_new = normalize(lightPos - hit_pos);
+
+                L_indirect += evalDiffuse(sampled_dir, color, normal) / (pdf) * evalDiffuse(lightdir_new, color_new, normal_new) * evalDirectLight(lightColor, shadow_new);
+                L_indirect += evalDiffuse(lightdir_new, color_new, normal_new);
+            }
         }
+        L_indirect = L_indirect / float(num_ray);
+        
+        // Combined
+        L += L_indirect;
+        
+        FragColor = vec4(L, 1.0f);
     }
-    L_indirect = L_indirect / float(2);
-    if (L_indirect.x < 0)
-        L_indirect.x = 0;
-    if (L_indirect.y < 0)
-        L_indirect.y = 0;
-    if (L_indirect.z < 0)
-        L_indirect.z = 0;
-    
-    lighting += L_indirect;
-    
-    // Combined
-    
-    FragColor = vec4(lighting, 1.0f);
+    else {
+        FragColor = vec4(0.2f, 0.3f, 0.3f, 1.0f);
+    }
 }
+

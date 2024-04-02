@@ -133,6 +133,16 @@ int main()
     floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
     quads.addObject(floor_model, texture_floor);
     
+    //floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 4.0f, 0.0f));
+    //floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
+    //quads.addObject(floor_model, texture_floor);
+    
+    //floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 4.0f, -5.0f));
+    //floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
+    //quads.addObject(floor_model, texture_floor);
+    
     std::vector<std::string> faces {
         prefix + "media/skybox/right.jpg",
         prefix + "media/skybox/left.jpg",
@@ -273,16 +283,15 @@ int main()
     
         // Render cube
         depthmapshader.use();
-        depthmapshader.setMat4f("model", cubes.models[0]);
-        cubes.render();
-    
-        // Render cube2
-        depthmapshader.setMat4f("model", cubes.models[1]);
-        cubes.render();
-    
+        for (int i = 0; i < cubes.models.size()-1; i++) {
+            depthmapshader.setMat4f("model", cubes.models[i]);
+            cubes.render();
+        }
         // Render floor
-        depthmapshader.setMat4f("model", quads.models[0]);
-        quads.render();
+        for (int i = 0; i < quads.models.size(); i++) {
+            depthmapshader.setMat4f("model", quads.models[i]);
+            quads.render();
+        }
         
         // Normal rendering
         // ----------------
@@ -300,31 +309,29 @@ int main()
             blinnphongshader_shadow.setMat4f("lightView", lightView);
             blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
             blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, cubes.textures[0]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            cubes.render();
             
-            // Render cube2
-            blinnphongshader_shadow.setMVP(cubes.models[1], view);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, cubes.textures[1]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            cubes.render();
+            for (int i = 0; i < cubes.models.size()-1; i++) {
+                blinnphongshader_shadow.setModelMat(cubes.models[i]);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                cubes.render();
+            }
             
             // Render light
             lightshader.setMVP(cubes.models[2], view);
             cubes.render();
             
             // Render floor
-            blinnphongshader_shadow.setMVP(quads.models[0], view);
-            glActiveTexture(GL_TEXTURE0); // bind floor texture
-            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            quads.render();
+            for (int i = 0; i < quads.models.size(); i++) {
+                blinnphongshader_shadow.setMVP(quads.models[i], view);
+                glActiveTexture(GL_TEXTURE0); // bind floor texture
+                glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                quads.render();
+            }
         }
         // Deferred rendering
         // ------------------
@@ -333,6 +340,8 @@ int main()
             // -----------------
             glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
             glEnable(GL_DEPTH_TEST);
+            // Setting g=1.0f is to init depth in gbuffer to 1.0f (farthest)
+            glClearColor(0.2f, 1.0f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             gbuffershader.use();
             gbuffershader.setVec3f("viewPos", ourcamera.Position);
@@ -340,29 +349,29 @@ int main()
             glm::mat4 view = ourcamera.GetViewMatrix();
             
             gbuffershader.setMVP(cubes.models[0], view);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, cubes.textures[0]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            cubes.render();
             
-            gbuffershader.setModelMat(cubes.models[1]);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, cubes.textures[1]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            cubes.render();
+            for (int i = 0; i < cubes.models.size()-1; i++) {
+                gbuffershader.setModelMat(cubes.models[i]);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                cubes.render();
+            }
             
-            gbuffershader.setModelMat(quads.models[0]);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-            quads.render();
+            for (int i = 0; i < quads.models.size(); i++) {
+                gbuffershader.setModelMat(quads.models[i]);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                quads.render();
+            }
     
             // Render to screen
             // ----------------
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
             deferredrendershader.use();
@@ -380,6 +389,7 @@ int main()
             glm::mat4 projMat = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 200.0f);
             glm::mat4 vpmat = projMat * view;
             deferredrendershader.setMat4f("VPMatrix", vpmat);
+            deferredrendershader.setInt("numray", myimgui.numray);
             
             // finally render quad
             quads.render();

@@ -12,11 +12,20 @@ class MyImgui
 {
 public:
     bool show_demo_window;
+    
+    // Shadow type
     int shadowtype;
+    
     // Screen space reflection
     int rendertype;
     
-    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, int in_shadowtype=0, bool in_rendertype=false)
+    // Num of ray for SSR
+    int numray;
+    
+    MyImgui(GLFWwindow* window, bool in_show_demo_window=false, 
+            int in_shadowtype=0,
+            bool in_rendertype=false,
+            int in_numray=0)
     {
         // Setup Dear ImGui context
         // ------------------------
@@ -34,6 +43,7 @@ public:
         show_demo_window = in_show_demo_window;
         shadowtype = in_shadowtype;
         rendertype = in_rendertype;
+        numray = in_numray;
     };
     
     void newframe()
@@ -50,7 +60,7 @@ public:
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::SetNextWindowSize(ImVec2(500, 140));
+        ImGui::SetNextWindowSize(ImVec2(500, 160));
         ImGui::Begin("Rendering settings");
         
         const char* shadowtype_list[] = {
@@ -65,6 +75,9 @@ public:
             "screen space ray tracing"
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
+        
+        const char* numray_list[] = {"2", "4", "8", "16"};
+        ImGui::Combo("Num of rays", &numray, numray_list, IM_ARRAYSIZE(numray_list));
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
