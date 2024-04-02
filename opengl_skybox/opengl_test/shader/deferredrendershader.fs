@@ -169,12 +169,7 @@ void main()
         
         vec3 L_indirect = vec3(0.0f, 0.0f, 0.0f);
         
-        int num_ray = 2;
-        if (numray == 1) num_ray = 4;
-        else if (numray == 2) num_ray = 8;
-        else if (numray == 3) num_ray = 16;
-        
-        for (int i = 0; i < num_ray; i++) {
+        for (int i = 0; i < numray; i++) {
             // Sample a light
             float pdf = INV_TWOPI;
             rand_num = Rand1(rand_num);
@@ -199,7 +194,7 @@ void main()
                 L_indirect += evalDiffuse(lightdir_new, color_new, normal_new);
             }
         }
-        L_indirect = L_indirect / float(num_ray);
+        L_indirect = L_indirect / float(numray);
         
         // Combined
         L += L_indirect;

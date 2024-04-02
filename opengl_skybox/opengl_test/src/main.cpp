@@ -126,7 +126,7 @@ int main()
     
     cube_model = glm::translate(glm::mat4(1.0f), light.Position);
     cube_model = glm::scale(cube_model, glm::vec3(0.5f, 0.5f, 0.5f));
-    cubes.addObject(cube_model, texture_cube);
+    cubes.addObject(cube_model, 0, false);
     
     glm::mat4 floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -252,6 +252,8 @@ int main()
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setInt("diffuseTexture", 0);
     blinnphongshader_shadow.setInt("shadowMap", 1);
+    blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
+    blinnphongshader_shadow.setMat4f("lightView", lightView);
     // -----------------
     gbuffershader.use();
     gbuffershader.setInt("texture_diffuse1", 0);
@@ -272,23 +274,25 @@ int main()
         // input
         processInput(window);
         
+        glm::mat4 view = ourcamera.GetViewMatrix();
+        
         // 1. Render shadow map to frame buffer
         // ------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
         glEnable(GL_DEPTH_TEST);
-        //glEnable(GL_CULL_FACE);
-        //glCullFace(GL_FRONT);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
     
         // Render cube
         depthmapshader.use();
-        for (int i = 0; i < cubes.models.size()-1; i++) {
-            depthmapshader.setMat4f("model", cubes.models[i]);
-            cubes.render();
+        for (int i = 0; i < cubes.num; i++) {
+            if (cubes.cast_shadow[i] == true) {
+                depthmapshader.setMat4f("model", cubes.models[i]);
+                cubes.render();
+            }
         }
         // Render floor
-        for (int i = 0; i < quads.models.size(); i++) {
+        for (int i = 0; i < quads.num; i++) {
             depthmapshader.setMat4f("model", quads.models[i]);
             quads.render();
         }
@@ -302,31 +306,30 @@ int main()
             
             glEnable(GL_DEPTH_TEST);
 
-            // Render cube
-            glm::mat4 view = ourcamera.GetViewMatrix();
             blinnphongshader_shadow.setMVP(cubes.models[0], view);
-            blinnphongshader_shadow.setMat4f("lightProjection", lightProjection);
-            blinnphongshader_shadow.setMat4f("lightView", lightView);
             blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
             blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
             
-            for (int i = 0; i < cubes.models.size()-1; i++) {
-                blinnphongshader_shadow.setModelMat(cubes.models[i]);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-                cubes.render();
+            // Render cube
+            for (int i = 0; i < cubes.num; i++) {
+                if (cubes.textures[i] > 0) {
+                    blinnphongshader_shadow.setModelMat(cubes.models[i]);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                    cubes.render();
+                }
+                else {
+                    lightshader.setMVP(cubes.models[2], view);
+                    cubes.render();
+                }
             }
             
-            // Render light
-            lightshader.setMVP(cubes.models[2], view);
-            cubes.render();
-            
             // Render floor
-            for (int i = 0; i < quads.models.size(); i++) {
+            for (int i = 0; i < quads.num; i++) {
                 blinnphongshader_shadow.setMVP(quads.models[i], view);
-                glActiveTexture(GL_TEXTURE0); // bind floor texture
+                glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
@@ -350,16 +353,20 @@ int main()
             
             gbuffershader.setMVP(cubes.models[0], view);
             
-            for (int i = 0; i < cubes.models.size()-1; i++) {
-                gbuffershader.setModelMat(cubes.models[i]);
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-                cubes.render();
+            // Render cube
+            for (int i = 0; i < cubes.num; i++) {
+                if (cubes.textures[i] > 0) {
+                    gbuffershader.setModelMat(cubes.models[i]);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                    cubes.render();
+                }
             }
             
-            for (int i = 0; i < quads.models.size(); i++) {
+            // Render floor
+            for (int i = 0; i < quads.num; i++) {
                 gbuffershader.setModelMat(quads.models[i]);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, quads.textures[i]);

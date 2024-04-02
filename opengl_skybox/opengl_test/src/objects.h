@@ -25,8 +25,10 @@ public:
     unsigned int VBO;
     unsigned int VAO;
     
+    unsigned int num = 0;
     std::vector<glm::mat4> models;
     std::vector<unsigned int> textures;
+    std::vector<bool> cast_shadow;
     
     Objects() {};
     ~Objects() {
@@ -34,9 +36,11 @@ public:
         glDeleteBuffers(1, &VBO);
     };
     
-    void addObject(glm::mat4 in_model, unsigned int in_texture) {
+    void addObject(glm::mat4 in_model, unsigned int in_texture=0, bool in_cast_shadow=true) {
+        num++;
         models.push_back(in_model); // TODO: change to std::move()
         textures.push_back(in_texture);
+        cast_shadow.push_back(in_cast_shadow);
     };
     
     virtual void _getVBOVAO() {};

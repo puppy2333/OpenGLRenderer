@@ -60,7 +60,7 @@ public:
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::SetNextWindowSize(ImVec2(500, 160));
+        ImGui::SetNextWindowSize(ImVec2(500, 180));
         ImGui::Begin("Rendering settings");
         
         const char* shadowtype_list[] = {
@@ -76,11 +76,13 @@ public:
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         
-        const char* numray_list[] = {"2", "4", "8", "16"};
-        ImGui::Combo("Num of rays", &numray, numray_list, IM_ARRAYSIZE(numray_list));
+        //ImGui::SeparatorText("Sliders");
+        ImGui::SliderInt("Num of rays", &numray, 1, 8);
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        
+        ImGui::SeparatorText("Performance");
+        ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::End();
 
         // Rendering
