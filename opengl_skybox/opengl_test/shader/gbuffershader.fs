@@ -17,6 +17,8 @@ uniform vec3 viewPos;
 
 uniform int imgui_shadowtype;
 
+uniform int is_mirror;
+
 // --------------------------------------------
 // ---------- For shadow calculation ----------
 // --------------------------------------------
@@ -144,6 +146,7 @@ void main()
     
     gAlbedoSpec.rgb = texture(texture_diffuse1, TexCoords).rgb;
     gAlbedoSpec.a = 1.0f;
+    // gAlbedoSpec.a = texture(texture_diffuse1, TexCoords).a;
     
     float shadow = 0.0f;
     if (imgui_shadowtype == 0) {
@@ -157,9 +160,13 @@ void main()
     }
     
     gShadow.r = shadow;
-//    gShadow.r = 1.0f;
     gShadow.g = gl_FragCoord.z;
-    gShadow.b = 1.0f;
+    if (is_mirror == 1) {
+        gShadow.b = 1.0f;
+    }
+    else {
+        gShadow.b = 0.0f;
+    }
     gShadow.a = 1.0f;
     //gShadow.gba = vec3(1.0f);
 }

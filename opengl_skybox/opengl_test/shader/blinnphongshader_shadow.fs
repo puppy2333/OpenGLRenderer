@@ -142,7 +142,8 @@ vec3 evalDiffuse(vec3 lightDir, vec3 color, vec3 normal)
 {
     // Diffuse
     float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color * INV_PI;
+    // vec3 diffuse = diff * color * INV_PI;
+    vec3 diffuse = diff * color;
     return diffuse;
 }
 
@@ -182,12 +183,13 @@ void main()
     vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     
     // Direct lightning
-    // vec3 ambientBRDF = evalAmbient(color);
+    vec3 ambientBRDF = evalAmbient(color);
     vec3 diffuseBRDF = evalDiffuse(lightDir, color, normal);
     // vec3 specularBRDF = evalSpecular(lightDir, color, normal);
     vec3 directLight =evalDirectLight(lightColor, lightDir, normal);
     // vec3 lighting = ambientBRDF * lightColor + (diffuseBRDF + specularBRDF) * directLight;
-    vec3 lighting = diffuseBRDF * directLight;
+    vec3 lighting = ambientBRDF * lightColor + diffuseBRDF * directLight;
+    // vec3 lighting = diffuseBRDF * directLight;
     
     FragColor = vec4(lighting, 1.0f);
 }

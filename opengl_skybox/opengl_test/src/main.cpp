@@ -100,7 +100,7 @@ int main()
     
     // Determine light position
     // ------------------------
-    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -2.0f));
+    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
     light.shaderSetLight(cubeshader);
     light.shaderSetLight(floorshader);
     blinnphongshader_shadow.use();
@@ -119,21 +119,33 @@ int main()
     Cubes cubes;
     Quads quads;
     
+    // High cube
     glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, -4.0f));
+    //glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 0.0f, -10.0f));
     cube_model = glm::scale(cube_model, glm::vec3(1.0f, 2.0f, 1.0f));
     cubes.addObject(cube_model, texture_cube);
     
+    // cube
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -5.0f));
-    cubes.addObject(cube_model, texture_cube);
+    //cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, -0.5f, 10.0f));
+    cubes.addObject(cube_model, texture_cube, true, true);
     
+    // light
     cube_model = glm::translate(glm::mat4(1.0f), light.Position);
     cube_model = glm::scale(cube_model, glm::vec3(0.5f, 0.5f, 0.5f));
     cubes.addObject(cube_model, 0, false);
     
+    // floor
     glm::mat4 floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     floor_model = glm::scale(floor_model, glm::vec3(10.0f, 10.0f, 10.0f));
     quads.addObject(floor_model, texture_floor);
+    
+    // floor
+    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -0.9f, 1.0f));
+    mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
+    quads.addObject(mirror_model, 0, true, true);
     
     // load models
     // -----------
@@ -280,7 +292,7 @@ int main()
         
         // render the loaded model
         // glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-6.0f, -1.0f, -3.0f));
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 1.0f));
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
         depthmapshader.setMat4f("model", model);
         ourModel.Draw(depthmapshader);
@@ -331,13 +343,21 @@ int main()
             }
             
             // render the loaded model
-            objshader.use();
+//            objshader.use();
+//            glm::mat4 model = glm::mat4(1.0f);
+//            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+//            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+//            objshader.setMVP(model, view);
+//            ourModel.Draw(objshader);
+            
             glm::mat4 model = glm::mat4(1.0f);
-            // model = glm::translate(model, glm::vec3(-6.0f, -1.0f, -3.0f)); // translate it down so it's at the center of the scene
-            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
             model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+//            blinnphongshader_shadow.setMVP(model, view);
             objshader.setMVP(model, view);
             ourModel.Draw(objshader);
+//            ourModel.Draw(blinnphongshader_shadow);
+            
         }
         // Deferred rendering
         // ------------------
@@ -360,6 +380,7 @@ int main()
             for (int i = 0; i < cubes.num; i++) {
                 if (cubes.textures[i] > 0) {
                     gbuffershader.setModelMat(cubes.models[i]);
+                    gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
                     glActiveTexture(GL_TEXTURE1);
@@ -371,12 +392,21 @@ int main()
             // Render floor
             for (int i = 0; i < quads.num; i++) {
                 gbuffershader.setModelMat(quads.models[i]);
+                gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
                 quads.render();
             }
+            
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
+            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+            gbuffershader.setModelMat(model);
+            gbuffershader.setBool("is_mirror", false);
+            ourModel.Draw(gbuffershader);
+            
     
             // Render to screen
             // ----------------

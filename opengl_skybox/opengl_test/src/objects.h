@@ -29,6 +29,7 @@ public:
     std::vector<glm::mat4> models;
     std::vector<unsigned int> textures;
     std::vector<bool> cast_shadow;
+    std::vector<bool> ismirror;
     
     Objects() {};
     ~Objects() {
@@ -36,11 +37,12 @@ public:
         glDeleteBuffers(1, &VBO);
     };
     
-    void addObject(glm::mat4 in_model, unsigned int in_texture=0, bool in_cast_shadow=true) {
+    void addObject(glm::mat4 in_model, unsigned int in_texture=0, bool in_cast_shadow=true, bool in_ismirrior=false) {
         num++;
         models.push_back(in_model); // TODO: change to std::move()
         textures.push_back(in_texture);
         cast_shadow.push_back(in_cast_shadow);
+        ismirror.push_back(in_ismirrior);
     };
     
     virtual void _getVBOVAO() {};
