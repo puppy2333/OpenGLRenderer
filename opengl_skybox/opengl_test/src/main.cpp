@@ -119,11 +119,11 @@ int main()
     Cubes cubes;
     Quads quads;
     
-    glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, -4.0f));
     cube_model = glm::scale(cube_model, glm::vec3(1.0f, 2.0f, 1.0f));
     cubes.addObject(cube_model, texture_cube);
     
-    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, 2.0f));
+    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -5.0f));
     cubes.addObject(cube_model, texture_cube);
     
     cube_model = glm::translate(glm::mat4(1.0f), light.Position);
@@ -132,14 +132,14 @@ int main()
     
     glm::mat4 floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
+    floor_model = glm::scale(floor_model, glm::vec3(10.0f, 10.0f, 10.0f));
     quads.addObject(floor_model, texture_floor);
     
     // load models
     // -----------
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
-    Model ourModel(prefix + "media/backpack/backpack.obj");
+    // stbi_set_flip_vertically_on_load(true);
+    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
     
     // Shadow map
     // ----------
@@ -277,6 +277,14 @@ int main()
                 cubes.render();
             }
         }
+        
+        // render the loaded model
+        // glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-6.0f, -1.0f, -3.0f));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        depthmapshader.setMat4f("model", model);
+        ourModel.Draw(depthmapshader);
+        
         // Render floor
         for (int i = 0; i < quads.num; i++) {
             depthmapshader.setMat4f("model", quads.models[i]);
@@ -323,12 +331,11 @@ int main()
             }
             
             // render the loaded model
-            // don't forget to enable shader before setting uniforms
             objshader.use();
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(-3.0f, 0.0f, -3.0f)); // translate it down so it's at the center of the scene
+            // model = glm::translate(model, glm::vec3(-6.0f, -1.0f, -3.0f)); // translate it down so it's at the center of the scene
+            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
             model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
-            
             objshader.setMVP(model, view);
             ourModel.Draw(objshader);
         }
@@ -393,6 +400,19 @@ int main()
             glm::mat4 vpmat = projMat * view;
             deferredrendershader.setMat4f("VPMatrix", vpmat);
             deferredrendershader.setInt("numray", myimgui.numray);
+            
+            // finally render quad
+            quads.render();
+        }
+        else if (myimgui.rendertype == 2) {
+            // Render to screen
+            // ----------------
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            screenshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             
             // finally render quad
             quads.render();

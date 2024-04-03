@@ -72,7 +72,8 @@ public:
         
         const char* rendertype_list[] = {
             "direct lightning",
-            "screen space ray tracing"
+            "screen space ray tracing",
+            "DEBUG: vis shadow map"
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         
