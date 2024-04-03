@@ -96,6 +96,7 @@ int main()
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
     Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
     Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
+    Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");
     
     // Determine light position
     // ------------------------
@@ -134,35 +135,11 @@ int main()
     floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
     quads.addObject(floor_model, texture_floor);
     
-    //floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 4.0f, 0.0f));
-    //floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
-    //quads.addObject(floor_model, texture_floor);
-    
-    //floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 4.0f, -5.0f));
-    //floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //floor_model = glm::scale(floor_model, glm::vec3(5.0f, 5.0f, 5.0f));
-    //quads.addObject(floor_model, texture_floor);
-    
-    std::vector<std::string> faces {
-        prefix + "media/skybox/right.jpg",
-        prefix + "media/skybox/left.jpg",
-        prefix + "media/skybox/top.jpg",
-        prefix + "media/skybox/bottom.jpg",
-        prefix + "media/skybox/front.jpg",
-        prefix + "media/skybox/back.jpg"
-    };
-    //unsigned int texture_cubemap = genCubeMapTexture(faces);
-    
-    // transparent window locations
-    // ----------------------------
-    std::vector<glm::vec3> windows {
-        glm::vec3(-1.5f, 0.0f, -1.48f),
-        glm::vec3( 1.5f, 0.0f, 1.51f),
-        glm::vec3( 0.0f, 0.0f, 1.7f),
-        glm::vec3(-0.3f, 0.0f, -3.3f),
-        glm::vec3( 0.5f, 0.0f, -1.6f)
-    };
+    // load models
+    // -----------
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(true);
+    Model ourModel(prefix + "media/backpack/backpack.obj");
     
     // Shadow map
     // ----------
@@ -268,6 +245,14 @@ int main()
     deferredrendershader.setInt("gNormal", 1);
     deferredrendershader.setInt("gAlbedoSpec", 2);
     deferredrendershader.setInt("gShadow", 3);
+    // -----------------
+    objshader.use();
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-5.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+    objshader.setMat4f("model", model);
+    glm::mat4 projection = glm::perspective(glm::radians(ourcamera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    objshader.setMat4f("projection", projection);
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -336,6 +321,16 @@ int main()
                 glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
                 quads.render();
             }
+            
+            // render the loaded model
+            // don't forget to enable shader before setting uniforms
+            objshader.use();
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(-3.0f, 0.0f, -3.0f)); // translate it down so it's at the center of the scene
+            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+            
+            objshader.setMVP(model, view);
+            ourModel.Draw(objshader);
         }
         // Deferred rendering
         // ------------------
