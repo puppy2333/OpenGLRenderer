@@ -84,6 +84,15 @@ bool is_uv_outofscreen(vec2 uv) {
     }
 }
 
+float LinearizeDepth(float depth)
+{
+    float NEAR = 1.0f;
+    float FAR = 40.0f;
+    
+    float z = depth * 2.0 - 1.0; // Back to NDC
+    return (2.0 * NEAR * FAR) / (FAR + NEAR - z * (FAR - NEAR));
+}
+
 vec3 rayMarch(vec3 origin_point, vec3 ray_dir) {
     float dx = 0.05;
     vec3 end_point = origin_point + 0.2 * ray_dir;
@@ -98,8 +107,12 @@ vec3 rayMarch(vec3 origin_point, vec3 ray_dir) {
         }
         
         float buffer_depth = GetGBufferDepth(test_point_uv);
-        //float depth_threshold = min(0.003 * (1 - buffer_depth)); // Todo: Dynamic threshold
-        if (test_point_depth > buffer_depth + 1e-6 && test_point_depth < buffer_depth + 0.003) {
+        
+        // Linearize depth
+        test_point_depth = LinearizeDepth(test_point_depth);
+        buffer_depth = LinearizeDepth(buffer_depth);
+        
+        if (test_point_depth > buffer_depth + 1e-6 && test_point_depth < buffer_depth + 0.15) {
             return test_point;
         } else {
             end_point = test_point;

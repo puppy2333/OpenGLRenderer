@@ -128,7 +128,7 @@ int main()
     cubes.addObject(cube_model, texture_cube);
     
     // cube
-    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -2.0f));
+    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -4.0f));
     cubes.addObject(cube_model, texture_cube, true, true);
     
     // light
