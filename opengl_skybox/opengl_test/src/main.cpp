@@ -81,6 +81,9 @@ int main()
     // ----------
     std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
     
+    // Set camera
+    ourcamera.SetProjectMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+    
     // build and compile our shader programs
     // -------------------------------------
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
@@ -120,13 +123,11 @@ int main()
     Quads quads;
     
     // High cube
-    //glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 0.0f));
     glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, -0.5f, -3.0f));
     cube_model = glm::scale(cube_model, glm::vec3(1.0f, 2.0f, 1.0f));
     cubes.addObject(cube_model, texture_cube);
     
     // cube
-    //cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -0.5f, 5.0f));
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -2.0f));
     cubes.addObject(cube_model, texture_cube, true, true);
     
@@ -149,7 +150,6 @@ int main()
     
     // load models
     // -----------
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     // stbi_set_flip_vertically_on_load(true);
     Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
     
@@ -263,7 +263,7 @@ int main()
     model = glm::translate(model, glm::vec3(-5.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
     objshader.setMat4f("model", model);
-    glm::mat4 projection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 40.0f);
+    glm::mat4 projection = ourcamera.GetProjectMatrix();
     objshader.setMat4f("projection", projection);
     
     // render loop

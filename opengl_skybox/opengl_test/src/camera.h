@@ -46,6 +46,8 @@ public:
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
+    
+    glm::mat4 projection;
 
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), 
@@ -73,6 +75,14 @@ public:
     glm::mat4 GetViewMatrix()
     {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+    void SetProjectMatrix(float ratio)
+    {
+        projection = glm::perspective((float)glm::radians(45.0f), ratio, 1.0f, 40.0f);
+    }
+    glm::mat4 GetProjectMatrix()
+    {
+        return projection;
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)

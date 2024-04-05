@@ -135,7 +135,7 @@ public:
     // ------------------------------------------------------------------------
     void setMVP(glm::mat4 &model, glm::mat4 &view)
     {
-        glm::mat4 projMat = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 40.0f);
+        glm::mat4 projMat = ourcamera.GetProjectMatrix();
         
         use();
         setMat4f("model", model);
