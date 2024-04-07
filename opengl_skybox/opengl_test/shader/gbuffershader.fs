@@ -150,12 +150,15 @@ void main()
     
     float shadow = 0.0f;
     if (imgui_shadowtype == 0) {
+        shadow = 0.0f;
+    }
+    if (imgui_shadowtype == 1) {
         shadow = ShadowCalculation();
     }
-    else if (imgui_shadowtype == 1) {
+    else if (imgui_shadowtype == 2) {
         shadow = PCFShadowCalculation();
     }
-    else if (imgui_shadowtype == 2) {
+    else if (imgui_shadowtype == 3) {
         shadow = PCSSShadowCalculation();
     }
     

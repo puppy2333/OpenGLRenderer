@@ -136,6 +136,23 @@ unsigned int genGBufferRGB16FTexture()
     return texture;
 }
 
+unsigned int genGBufferRGBA32FTexture()
+{
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2 * SCR_WIDTH, 2 * SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    return texture;
+}
+
 unsigned int genGBufferRGBATexture()
 {
     unsigned int texture;
@@ -149,6 +166,19 @@ unsigned int genGBufferRGBATexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     return texture;
+}
+
+unsigned int gen44RandomBuffer(std::vector<glm::vec3>& ssaoNoise)
+{
+    GLuint noiseTexture;
+    glGenTextures(1, &noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    return noiseTexture;
 }
 
 #endif /* texture_h */

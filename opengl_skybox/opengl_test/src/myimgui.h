@@ -15,12 +15,12 @@ public:
     
     // Shadow type
     int shadowtype;
-    
     // Screen space reflection
     int rendertype;
-    
     // Num of ray for SSR
     int numray;
+    // Screen space ambient occlusion
+    bool ssao;
     
     MyImgui(GLFWwindow* window, bool in_show_demo_window=false, 
             int in_shadowtype=0,
@@ -60,11 +60,12 @@ public:
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         //ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::SetNextWindowPos(ImVec2(10, 480));
+        ImGui::SetNextWindowPos(ImVec2(10, 440));
         ImGui::SetNextWindowSize(ImVec2(500, 180));
         ImGui::Begin("Rendering settings");
         
         const char* shadowtype_list[] = {
+            "no shadow",
             "vanilla",
             "percentage-closer filtering (PCF)",
             "percentage colser soft shadows (PCSS)"
@@ -73,13 +74,17 @@ public:
         
         const char* rendertype_list[] = {
             "direct lightning",
-            "screen space ray tracing",
+            "screen space reflection",
+            "DEBUG: vis ssao",
             "DEBUG: vis shadow map"
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         
         //ImGui::SeparatorText("Sliders");
-        ImGui::SliderInt("Num of rays", &numray, 1, 8);
+        
+        ImGui::Checkbox("Screen space ambient occlusion", &ssao);
+        
+        //ImGui::SliderInt("Num of rays", &numray, 1, 8);
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
         

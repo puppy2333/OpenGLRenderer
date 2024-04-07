@@ -164,12 +164,15 @@ vec3 evalDirectLight(vec3 lightColor, vec3 lightDir, vec3 normal)
     // Calculate shadow
     float shadow = 0;
     if (imgui_shadowtype == 0) {
+        shadow = 0;
+    }
+    if (imgui_shadowtype == 1) {
         shadow = ShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
     }
-    else if (imgui_shadowtype == 1) {
+    else if (imgui_shadowtype == 2) {
         shadow = PCFShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
     }
-    else if (imgui_shadowtype == 2) {
+    else if (imgui_shadowtype == 3) {
         shadow = PCSSShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);
     }
     return (1.0 - shadow) * lightColor;

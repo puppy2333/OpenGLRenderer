@@ -21,6 +21,8 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <filesystem>
+#include <random>
 
 // UI (ref. https://github.com/ocornut/imgui)
 #include <imui/imgui.h>
@@ -100,6 +102,9 @@ int main()
     Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
     Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
     Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");
+    Shader ssaoshader(prefix + "/shader/ssaoshader.vs", prefix + "/shader/ssaoshader.fs");
+    //Shader vistextureshader(prefix + "/shader/vistextureshader.vs", prefix + "/shader/vistextureshader.fs");
+    //Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
     
     // Determine light position
     // ------------------------
@@ -153,6 +158,39 @@ int main()
     // stbi_set_flip_vertically_on_load(true);
     Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
     
+    // Generate sample kernel for ssao
+    // -–-----------------------------
+    std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0);
+    std::default_random_engine generator;
+    std::vector<glm::vec3> ssaoKernel;
+    for (GLuint i = 0; i < 64; ++i)
+    {
+        glm::vec3 sample(
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator)
+        );
+        sample = glm::normalize(sample);
+        sample *= randomFloats(generator);
+        GLfloat scale = GLfloat(i) / 64.0;
+        scale = lerp(0.1f, 1.0f, scale * scale);
+        sample *= scale;
+        ssaoKernel.push_back(sample);
+    }
+    
+    // Then randomly rotate the sample kernel
+    // -–------------------------------------
+    std::vector<glm::vec3> ssaoNoise;
+    for (GLuint i = 0; i < 16; i++)
+    {
+        glm::vec3 noise(
+            randomFloats(generator) * 2.0 - 1.0,
+            randomFloats(generator) * 2.0 - 1.0,
+            0.0f);
+        ssaoNoise.push_back(noise);
+    }
+    GLuint noiseTexture = gen44RandomBuffer(ssaoNoise);
+    
     // Shadow map
     // ----------
     unsigned int FBO_depthmap;
@@ -185,7 +223,7 @@ int main()
         gAlbedoSpec = genGBufferRGBATexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedoSpec, 0);
         // Texture and specular value
-        gShadow = genGBufferRGBA16FTexture();
+        gShadow = genGBufferRGBA32FTexture();
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, gShadow, 0);
         // Tell OpenGL we are using color 123 to render
         glDrawBuffers(4, attachments);
@@ -200,6 +238,20 @@ int main()
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             std::cout << "Framebuffer not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Generate ssao & ssao_blur buffer
+    // --------------------
+    GLuint ssaoFBO;
+    glGenFramebuffers(1, &ssaoFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+    GLuint ssaoColorBuffer = genGBufferRGBATexture();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
+    
+    GLuint ssaoBlurFBO;
+    glGenFramebuffers(1, &ssaoBlurFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+    GLuint ssaoColorBufferBlur = genGBufferRGBATexture();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
     
     // OpenGL tests
     // ---------------------
@@ -257,6 +309,7 @@ int main()
     deferredrendershader.setInt("gNormal", 1);
     deferredrendershader.setInt("gAlbedoSpec", 2);
     deferredrendershader.setInt("gShadow", 3);
+    deferredrendershader.setInt("ssao", 4);
     // -----------------
     objshader.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -265,6 +318,71 @@ int main()
     objshader.setMat4f("model", model);
     glm::mat4 projection = ourcamera.GetProjectMatrix();
     objshader.setMat4f("projection", projection);
+    // -----------------
+    ssaoshader.use();
+    ssaoshader.setInt("gPosition", 0);
+    ssaoshader.setInt("gNormal", 1);
+    ssaoshader.setInt("gShadow", 2);
+    ssaoshader.setInt("noiseTexture", 3);
+    // Send kernel
+    for (GLuint i = 0; i < 64; ++i) {
+        ssaoshader.setVec3f("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+    }
+    ssaoshader.setMat4f("projection", projection);
+    
+    // Lambda function of rendering to gbuffer
+    // ---------------------------------------
+    auto renderToGbuffer = [&]() {
+        // Render to GBuffer
+        // -----------------
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+        glEnable(GL_DEPTH_TEST);
+        // Setting g=1.0f is to init depth in gbuffer to 1.0f (farthest)
+        glClearColor(0.2f, 1.0f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        gbuffershader.use();
+        gbuffershader.setVec3f("viewPos", ourcamera.Position);
+        gbuffershader.setInt("imgui_shadowtype", myimgui.shadowtype);
+        glm::mat4 view = ourcamera.GetViewMatrix();
+        
+        gbuffershader.setMVP(cubes.models[0], view);
+        
+        // Render cube
+        for (int i = 0; i < cubes.num; i++) {
+            if (cubes.textures[i] > 0) {
+                gbuffershader.setModelMat(cubes.models[i]);
+                gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
+                if (cubes.textures[i] > 0) {
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
+                }
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                cubes.render();
+            }
+        }
+        
+        // Render floor
+        for (int i = 0; i < quads.num; i++) {
+            gbuffershader.setModelMat(quads.models[i]);
+            gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
+            if (quads.textures[i] > 0) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
+            }
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            quads.render();
+        }
+        
+        // Render loaded model
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        gbuffershader.setModelMat(model);
+        gbuffershader.setBool("is_mirror", false);
+        ourModel.Draw(gbuffershader);
+    };
     
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -274,32 +392,34 @@ int main()
         
         glm::mat4 view = ourcamera.GetViewMatrix();
         
-        // 1. Render shadow map to frame buffer
-        // ------------------------------------
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_DEPTH_BUFFER_BIT);
-    
-        // Render cube
-        depthmapshader.use();
-        for (int i = 0; i < cubes.num; i++) {
-            if (cubes.cast_shadow[i] == true) {
-                depthmapshader.setMat4f("model", cubes.models[i]);
-                cubes.render();
+        if (myimgui.shadowtype != 0) {
+            // Render shadow map to frame buffer
+            // ---------------------------------
+            glBindFramebuffer(GL_FRAMEBUFFER, FBO_depthmap);
+            glEnable(GL_DEPTH_TEST);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_DEPTH_BUFFER_BIT);
+        
+            // Render cube
+            depthmapshader.use();
+            for (int i = 0; i < cubes.num; i++) {
+                if (cubes.cast_shadow[i] == true) {
+                    depthmapshader.setMat4f("model", cubes.models[i]);
+                    cubes.render();
+                }
             }
-        }
-        
-        // render the loaded model
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 1.0f));
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-        depthmapshader.setMat4f("model", model);
-        ourModel.Draw(depthmapshader);
-        
-        // Render floor
-        for (int i = 0; i < quads.num; i++) {
-            depthmapshader.setMat4f("model", quads.models[i]);
-            quads.render();
+            
+            // render the loaded model
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 1.0f));
+            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+            depthmapshader.setMat4f("model", model);
+            ourModel.Draw(depthmapshader);
+            
+            // Render floor
+            for (int i = 0; i < quads.num; i++) {
+                depthmapshader.setMat4f("model", quads.models[i]);
+                quads.render();
+            }
         }
         
         // Normal rendering
@@ -359,54 +479,7 @@ int main()
         // Deferred rendering
         // ------------------
         else if (myimgui.rendertype == 1) {
-            // Render to GBuffer
-            // -----------------
-            glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-            glEnable(GL_DEPTH_TEST);
-            // Setting g=1.0f is to init depth in gbuffer to 1.0f (farthest)
-            glClearColor(0.2f, 1.0f, 0.3f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            gbuffershader.use();
-            gbuffershader.setVec3f("viewPos", ourcamera.Position);
-            gbuffershader.setInt("imgui_shadowtype", myimgui.shadowtype);
-            glm::mat4 view = ourcamera.GetViewMatrix();
-            
-            gbuffershader.setMVP(cubes.models[0], view);
-            
-            // Render cube
-            for (int i = 0; i < cubes.num; i++) {
-                if (cubes.textures[i] > 0) {
-                    gbuffershader.setModelMat(cubes.models[i]);
-                    gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
-                    if (cubes.textures[i] > 0) {
-                        glActiveTexture(GL_TEXTURE0);
-                        glBindTexture(GL_TEXTURE_2D, cubes.textures[i]);
-                    }
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-                    cubes.render();
-                }
-            }
-            
-            // Render floor
-            for (int i = 0; i < quads.num; i++) {
-                gbuffershader.setModelMat(quads.models[i]);
-                gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
-                if (quads.textures[i] > 0) {
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
-                }
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
-                quads.render();
-            }
-            
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
-            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
-            gbuffershader.setModelMat(model);
-            gbuffershader.setBool("is_mirror", false);
-            ourModel.Draw(gbuffershader);
+            renderToGbuffer();
     
             // Render to screen
             // ----------------
@@ -433,7 +506,29 @@ int main()
             // finally render quad
             quads.render();
         }
+        // Create SSAO texture
+        // -------------------
         else if (myimgui.rendertype == 2) {
+            renderToGbuffer();
+            
+            //glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); // Very important
+            ssaoshader.use();
+            ssaoshader.setViewMat(view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+            quads.render();
+        }
+        else if (myimgui.rendertype == 3) {
             // Render to screen
             // ----------------
             glBindFramebuffer(GL_FRAMEBUFFER, 0);

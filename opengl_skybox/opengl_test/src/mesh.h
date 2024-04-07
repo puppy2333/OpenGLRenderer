@@ -66,6 +66,9 @@ public:
     // render the mesh
     void Draw(Shader &shader)
     {
+        // The current code only support textures.size() == 1
+        assert(textures.size() == 1);
+        
         // bind appropriate textures
         unsigned int diffuseNr  = 1;
         unsigned int specularNr = 1;
