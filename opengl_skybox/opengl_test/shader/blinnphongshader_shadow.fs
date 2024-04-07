@@ -135,7 +135,7 @@ float PCSSShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 // ------------------------------------------
 vec3 evalAmbient(vec3 color)
 {
-    return 0.15 * color;
+    return 0.3 * color;
 }
 
 vec3 evalDiffuse(vec3 lightDir, vec3 color, vec3 normal)

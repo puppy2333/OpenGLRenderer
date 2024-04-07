@@ -103,8 +103,7 @@ int main()
     Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
     Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");
     Shader ssaoshader(prefix + "/shader/ssaoshader.vs", prefix + "/shader/ssaoshader.fs");
-    //Shader vistextureshader(prefix + "/shader/vistextureshader.vs", prefix + "/shader/vistextureshader.fs");
-    //Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
+    Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
     
     // Determine light position
     // ------------------------
@@ -309,7 +308,7 @@ int main()
     deferredrendershader.setInt("gNormal", 1);
     deferredrendershader.setInt("gAlbedoSpec", 2);
     deferredrendershader.setInt("gShadow", 3);
-    deferredrendershader.setInt("ssao", 4);
+    deferredrendershader.setInt("ssaoColorBufferBlur", 4);
     // -----------------
     objshader.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -502,6 +501,7 @@ int main()
             glm::mat4 vpmat = projection * view;
             deferredrendershader.setMat4f("VPMatrix", vpmat);
             deferredrendershader.setInt("numray", myimgui.numray);
+            deferredrendershader.setBool("AO", false);
             
             // finally render quad
             quads.render();
@@ -511,8 +511,8 @@ int main()
         else if (myimgui.rendertype == 2) {
             renderToGbuffer();
             
-            //glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST); // Very important
@@ -527,8 +527,79 @@ int main()
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, noiseTexture);
             quads.render();
+            
+            // 3. blur SSAO texture to remove noise
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+            // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            ssaoblurshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+            quads.render();
+            
+            // Render to screen
+            // ----------------
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            deferredrendershader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
+            // send light relevant uniforms
+            deferredrendershader.setVec3f("lightPos", light.Position);
+            deferredrendershader.setVec3f("viewPos", ourcamera.Position);
+            glm::mat4 vpmat = projection * view;
+            deferredrendershader.setMat4f("VPMatrix", vpmat);
+            deferredrendershader.setInt("numray", myimgui.numray);
+            deferredrendershader.setBool("AO", true);
+            
+            // finally render quad
+            quads.render();
         }
+        // Create SSAO texture
+        // -------------------
         else if (myimgui.rendertype == 3) {
+            renderToGbuffer();
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); // Very important
+            ssaoshader.use();
+            ssaoshader.setViewMat(view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+            quads.render();
+            
+            // 3. blur SSAO texture to remove noise
+            // glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            ssaoblurshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+            quads.render();
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        else if (myimgui.rendertype == 4) {
             // Render to screen
             // ----------------
             glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -14,6 +14,7 @@ uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D gAlbedoSpec;
 uniform sampler2D gShadow;
+uniform sampler2D ssaoColorBufferBlur;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -21,12 +22,13 @@ uniform vec3 viewPos;
 uniform mat4 VPMatrix;
 
 uniform int numray;
+uniform bool AO;
 
 // Direct lightning
 // ----------------
-vec3 evalAmbient(vec3 color)
+vec3 evalAmbient(vec3 color, float ao)
 {
-    return 0.15 * color;
+    return 0.3 * ao * color;
 }
 
 vec3 evalDiffuse(vec3 lightDir, vec3 color, vec3 normal)
@@ -130,6 +132,10 @@ void main()
     float shadow = texture(gShadow, TexCoords).r;
     float depth = texture(gShadow, TexCoords).g;
     float is_mirror = texture(gShadow, TexCoords).b;
+    float ao = 1.0f;
+    if (AO) {
+        ao = texture(ssaoColorBufferBlur, TexCoords).r;
+    }
     
     vec3 lightColor = vec3(1.0);
     vec3 lightDir = normalize(lightPos - fragPos);
@@ -140,8 +146,10 @@ void main()
         
         if (is_mirror < 0.01) {
             // Materials
-            vec3 ambientBRDF = evalAmbient(color);
+            vec3 ambientBRDF = evalAmbient(color, ao);
+            //vec3 ambientBRDF = vec3(ao);
             vec3 diffuseBRDF = evalDiffuse(lightDir, color, normal);
+            //vec3 diffuseBRDF = vec3(0.0f);
             
             // Direct lightning
             vec3 directLight = evalDirectLight(lightColor, shadow);
