@@ -75,7 +75,6 @@ public:
         const char* rendertype_list[] = {
             "direct lightning",
             "screen space reflection",
-            "screen space reflection with ssao",
             "DEBUG: vis ssao",
             "DEBUG: vis shadow map"
         };

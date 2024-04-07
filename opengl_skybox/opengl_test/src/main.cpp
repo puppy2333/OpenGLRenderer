@@ -244,12 +244,14 @@ int main()
     glGenFramebuffers(1, &ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
     GLuint ssaoColorBuffer = genGBufferRGBATexture();
+    //GLuint ssaoColorBuffer = genGBufferR16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
     
     GLuint ssaoBlurFBO;
     glGenFramebuffers(1, &ssaoBlurFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
     GLuint ssaoColorBufferBlur = genGBufferRGBATexture();
+    //GLuint ssaoColorBufferBlur = genGBufferR16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
     
     // OpenGL tests
@@ -391,6 +393,8 @@ int main()
         
         glm::mat4 view = ourcamera.GetViewMatrix();
         
+        // Shadow
+        // ------
         if (myimgui.shadowtype != 0) {
             // Render shadow map to frame buffer
             // ---------------------------------
@@ -419,6 +423,38 @@ int main()
                 depthmapshader.setMat4f("model", quads.models[i]);
                 quads.render();
             }
+        }
+        
+        if (myimgui.ssao) {
+            renderToGbuffer();
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); // Very important
+            ssaoshader.use();
+            ssaoshader.setViewMat(view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+            quads.render();
+            
+            // 3. blur SSAO texture to remove noise
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+            // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            ssaoblurshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+            quads.render();
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
         
         // Normal rendering
@@ -495,64 +531,6 @@ int main()
             glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, gShadow);
-            // send light relevant uniforms
-            deferredrendershader.setVec3f("lightPos", light.Position);
-            deferredrendershader.setVec3f("viewPos", ourcamera.Position);
-            glm::mat4 vpmat = projection * view;
-            deferredrendershader.setMat4f("VPMatrix", vpmat);
-            deferredrendershader.setInt("numray", myimgui.numray);
-            deferredrendershader.setBool("AO", false);
-            
-            // finally render quad
-            quads.render();
-        }
-        // Create SSAO texture
-        // -------------------
-        else if (myimgui.rendertype == 2) {
-            renderToGbuffer();
-            
-            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glDisable(GL_DEPTH_TEST); // Very important
-            ssaoshader.use();
-            ssaoshader.setViewMat(view);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gPosition);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, gNormal);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, gShadow);
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, noiseTexture);
-            quads.render();
-            
-            // 3. blur SSAO texture to remove noise
-            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
-            // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glDisable(GL_DEPTH_TEST);
-            ssaoblurshader.use();
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
-            quads.render();
-            
-            // Render to screen
-            // ----------------
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glDisable(GL_DEPTH_TEST);
-            deferredrendershader.use();
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gPosition);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, gNormal);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, gShadow);
             glActiveTexture(GL_TEXTURE4);
             glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
             // send light relevant uniforms
@@ -561,14 +539,14 @@ int main()
             glm::mat4 vpmat = projection * view;
             deferredrendershader.setMat4f("VPMatrix", vpmat);
             deferredrendershader.setInt("numray", myimgui.numray);
-            deferredrendershader.setBool("AO", true);
+            deferredrendershader.setBool("AO", myimgui.ssao);
             
             // finally render quad
             quads.render();
         }
         // Create SSAO texture
         // -------------------
-        else if (myimgui.rendertype == 3) {
+        else if (myimgui.rendertype == 2) {
             renderToGbuffer();
             
             glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
@@ -599,9 +577,10 @@ int main()
             quads.render();
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
-        else if (myimgui.rendertype == 4) {
-            // Render to screen
-            // ----------------
+        else if (myimgui.rendertype == 3) {
+            // Shadowmap must be rendered before visualization
+            assert(myimgui.shadowtype != 0);
+            
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
