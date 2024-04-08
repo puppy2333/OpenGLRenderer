@@ -76,7 +76,8 @@ public:
             "direct lightning",
             "screen space reflection",
             "DEBUG: vis ssao",
-            "DEBUG: vis shadow map"
+            "DEBUG: vis shadow map",
+            "Test render height field"
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         

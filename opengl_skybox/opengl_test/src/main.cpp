@@ -104,6 +104,8 @@ int main()
     Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");
     Shader ssaoshader(prefix + "/shader/ssaoshader.vs", prefix + "/shader/ssaoshader.fs");
     Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
+    Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
+    Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/heightshader.fs");
     
     // Determine light position
     // ------------------------
@@ -151,6 +153,12 @@ int main()
     mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
     quads.addObject(mirror_model, 0, true, true);
+    
+    // Fluid height
+    glm::mat4 height_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
+    height_model = glm::rotate(height_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    height_model = glm::scale(height_model, glm::vec3(1.0f, 1.0f, 1.0f));
+    quads.addObject(height_model, 0);
     
     // load models
     // -----------
@@ -253,6 +261,14 @@ int main()
     GLuint ssaoColorBufferBlur = genGBufferRGBATexture();
     //GLuint ssaoColorBufferBlur = genGBufferR16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
+    
+    // Create height map buffer
+    // ------------------------
+    GLuint heightFBO;
+    glGenFramebuffers(1, &heightFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, heightFBO);
+    GLuint heightBuffer = genGBufferRGBATexture();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, heightBuffer, 0);
     
     // OpenGL tests
     // ---------------------
@@ -589,6 +605,42 @@ int main()
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             
             // finally render quad
+            quads.render();
+        }
+        
+        else if (myimgui.rendertype == 4) {
+            glBindFramebuffer(GL_FRAMEBUFFER, heightFBO);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            fluidsimulationshader.use();
+            quads.render();
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            
+            glEnable(GL_DEPTH_TEST);
+            
+            blinnphongshader_shadow.setMVP(cubes.models[0], view);
+            blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
+            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
+            
+            // Render floor
+            for (int i = 0; i < quads.num-1; i++) {
+                blinnphongshader_shadow.setMVP(quads.models[i], view);
+                if (quads.textures[i] > 0) {
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
+                }
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+                quads.render();
+            }
+            
+            heightshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, heightBuffer);
+            heightshader.setMVP(quads.models[2], view);
             quads.render();
         }
         
