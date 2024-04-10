@@ -284,7 +284,7 @@ int main()
     GLuint heightFBO;
     glGenFramebuffers(1, &heightFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, heightFBO);
-    GLuint heightBuffer = genGBufferRGBATexture();
+    GLuint heightBuffer = genGBufferHeightTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, heightBuffer, 0);
     
     // OpenGL tests

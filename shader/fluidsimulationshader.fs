@@ -5,5 +5,10 @@ in vec2 TexCoords;
 
 void main()
 {
-    FragColor = vec4(TexCoords.x, TexCoords.y, 0.0, 1.0);
+    //float xh = fract(TexCoords.x * TexCoords.y * 4.52342);
+    //float yh = fract(TexCoords.x * TexCoords.y * 7.43853);
+
+    //float xh = (TexCoords.x - 0.5) * (TexCoords.x - 0.5) * 2 + (TexCoords.y - 0.5) * (TexCoords.y - 0.5) * 2;
+
+    FragColor = vec4(TexCoords.x, 0.0, 0.0, 1.0);
 }
