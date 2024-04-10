@@ -80,6 +80,33 @@ public:
 
 // Object base class
 // -----------------
+class Meshes: public Objects
+{
+public:
+    float h;
+    float w;
+    int h_n;
+    int w_n;
+    float dx;
+    unsigned int * indices;
+    unsigned int EBO;
+    
+    Meshes(float in_h, float in_w, float in_dx) {
+        h = in_h;
+        w = in_w;
+        dx = in_dx;
+        h_n = int(h / dx);
+        w_n = int(w / dx);
+        _getMesh();
+        _getVBOVAOEBO();
+    };
+    void _getMesh();
+    void _getVBOVAOEBO();
+    void render() override;
+};
+
+// Object base class
+// -----------------
 class Skyboxes: public Objects
 {
 public:
@@ -132,6 +159,32 @@ void Quads::_getVBOVAO()
     glEnableVertexAttribArray(2);
 }
 
+void Meshes::_getVBOVAOEBO()
+{
+    // squareVBO
+    // ---------
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, 8 * (h_n+1) * (w_n+1) * sizeof(float), vertexarray, GL_STATIC_DRAW);
+    
+    // squareVAO
+    // ---------
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    
+    // EBO
+    // ---
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+}
+
 void Skyboxes::_getVBOVAO()
 {
     // Cubemap VAO, VBO
@@ -156,6 +209,13 @@ void Quads::render()
 {
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Meshes::render()
+{
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glDrawElements(GL_TRIANGLES, 8 * (h_n+1) * (w_n+1), GL_UNSIGNED_INT, 0);
 }
 
 // Vertices functions
@@ -276,6 +336,49 @@ void Quads::_getQuad()
 //         0.9f, -0.9f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
 //         0.8f,  0.4f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
 //    };
+}
+
+void Meshes::_getMesh()
+{
+    auto getVertexIdx = [&](int x, int y) -> unsigned int {
+        return y * (this->w_n + 1) + x;
+    };
+    auto getTriangleIdx = [&](int x, int y) -> unsigned int {
+        return y * this->w_n + x;
+    };
+    
+    vertexarray = new float[8 * (h_n+1) * (w_n+1)];
+    for (int y = 0; y < h_n+1; y++) {
+        for (int x = 0; x < w_n+1; x++) {
+            unsigned int idx = getVertexIdx(x, y);
+            // position
+            vertexarray[8 * idx    ] = x * dx;
+            vertexarray[8 * idx + 1] = y * dx;
+            vertexarray[8 * idx + 2] = 0.0f;
+            // normal
+            vertexarray[8 * idx + 3] = 0.0f;
+            vertexarray[8 * idx + 4] = 0.0f;
+            vertexarray[8 * idx + 5] = 1.0f;
+            // texture
+            vertexarray[8 * idx + 6] = x * dx;
+            vertexarray[8 * idx + 7] = y * dx;
+        }
+    }
+    
+    indices = new unsigned int[h_n * w_n * 6];
+    for (int y = 0; y < h_n; y++) {
+        for (int x = 0; x < w_n; x++) {
+            unsigned int tri_idx = getTriangleIdx(x, y);
+            // First triangle
+            indices[6 * tri_idx    ] = getVertexIdx(x, y);
+            indices[6 * tri_idx + 1] = getVertexIdx(x+1, y);
+            indices[6 * tri_idx + 2] = getVertexIdx(x, y+1);
+            // Second triangle
+            indices[6 * tri_idx + 3] = getVertexIdx(x, y+1);
+            indices[6 * tri_idx + 4] = getVertexIdx(x+1, y);
+            indices[6 * tri_idx + 5] = getVertexIdx(x, y+1);
+        }
+    }
 }
 
 void Skyboxes::_getSkybox()

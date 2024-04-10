@@ -178,6 +178,13 @@ int main()
     height_model = glm::scale(height_model, glm::vec3(1.0f, 1.0f, 1.0f));
     quads.addObject(height_model, 0);
     
+    // Mesh
+    Quads meshes;
+    glm::mat4 mesh_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
+    mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mesh_model = glm::scale(mesh_model, glm::vec3(1.0f, 1.0f, 1.0f));
+    meshes.addObject(mesh_model, 0);
+    
     // load models
     // -----------
     // stbi_set_flip_vertically_on_load(true);
@@ -654,11 +661,18 @@ int main()
                 quads.render();
             }
             
+//            heightshader.use();
+//            glActiveTexture(GL_TEXTURE0);
+//            glBindTexture(GL_TEXTURE_2D, heightBuffer);
+//            heightshader.setMVP(quads.models[2], view);
+//            quads.render();
+            
+            
             heightshader.use();
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, heightBuffer);
             heightshader.setMVP(quads.models[2], view);
-            quads.render();
+            meshes.render();
         }
         
         // Start the Dear ImGui frame
