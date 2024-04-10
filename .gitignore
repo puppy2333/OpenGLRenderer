@@ -35,3 +35,7 @@
 *.png
 *.xcodeproj
 *.DS_Store
+
+cmake-build-debug/
+.idea/
+media/

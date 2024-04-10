@@ -54,9 +54,14 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // glfw window creation
-    // --------------------
+    // glfw window creation. Bugs about windows size exist in macOS,
+    // see https://stackoverflow.com/questions/35715579/opengl-created-window-size-twice-as-large
+    // ------------------------------------------------------------------------------------------
+#ifdef __APPLE__
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+#else
+    GLFWwindow* window = glfwCreateWindow(2 * SCR_WIDTH, 2 * SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+#endif
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -81,8 +86,13 @@ int main()
     
     // Set prefix
     // ----------
+#ifdef __APPLE__
     std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
-    
+#else
+//    std::string prefix = "D:/Learn_OpenGL/";
+    std::string prefix = "../";
+#endif
+
     // Set camera
     ourcamera.SetProjectMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
     

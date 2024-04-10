@@ -66,6 +66,12 @@ public:
     // render the mesh
     void Draw(Shader &shader)
     {
+        // Bug: textures.size() of model medieval_town/medieval_house_1 is 2 when compiled with MSVC,
+        // throw the second (or first) copy solves the problem.
+        if (textures.size() == 2) {
+            textures.pop_back();
+        }
+
         // The current code only support textures.size() == 1
         assert(textures.size() == 1);
         
