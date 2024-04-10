@@ -21,5 +21,6 @@ void main()
     // FragColor = result / (4.0 * 4.0);
     result = result / (4.0 * 4.0);
     FragColor = vec4(result, result, result, 1.0f);
+    //FragColor = vec4(result, 0.0f, 0.0f, 1.0f);
     //FragColor = result;
 }

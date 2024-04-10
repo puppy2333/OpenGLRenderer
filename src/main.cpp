@@ -46,8 +46,16 @@ int main()
 {
     // glfw: initialize and configure
     glfwInit();
+
+    // macOS only supports up to OpenGL 4.1
+#ifdef __APPLE__
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+#else
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+#endif
+
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
@@ -261,15 +269,14 @@ int main()
     GLuint ssaoFBO;
     glGenFramebuffers(1, &ssaoFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-    GLuint ssaoColorBuffer = genGBufferRGBATexture();
-    //GLuint ssaoColorBuffer = genGBufferR16FTexture();
+    GLuint ssaoColorBuffer = genGBufferRed16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
     
     GLuint ssaoBlurFBO;
     glGenFramebuffers(1, &ssaoBlurFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
-    GLuint ssaoColorBufferBlur = genGBufferRGBATexture();
-    //GLuint ssaoColorBufferBlur = genGBufferR16FTexture();
+    //GLuint ssaoColorBufferBlur = genGBufferRGBATexture();
+    GLuint ssaoColorBufferBlur = genGBufferRed16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
     
     // Create height map buffer
@@ -451,7 +458,7 @@ int main()
             }
         }
         
-        if (myimgui.ssao) {
+        if (myimgui.ssao && myimgui.rendertype != 2) {
             renderToGbuffer();
             
             glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
