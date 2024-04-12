@@ -61,7 +61,7 @@ public:
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         //ImGui::SetNextWindowPos(ImVec2(10, 10));
 #ifdef __APPLE__
-        ImGui::SetNextWindowPos(ImVec2(10, 440));
+        ImGui::SetNextWindowPos(ImVec2(10, 400));
 #else
         ImGui::SetNextWindowPos(ImVec2(10, 960));
 #endif

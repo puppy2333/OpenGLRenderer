@@ -179,7 +179,7 @@ int main()
     quads.addObject(height_model, 0);
     
     // Mesh
-    Quads meshes;
+    Meshes meshes(1, 1, 0.05);
     glm::mat4 mesh_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
     mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mesh_model = glm::scale(mesh_model, glm::vec3(1.0f, 1.0f, 1.0f));
@@ -671,7 +671,7 @@ int main()
             heightshader.use();
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, heightBuffer);
-            heightshader.setMVP(quads.models[2], view);
+            heightshader.setMVP(meshes.models[0], view);
             meshes.render();
         }
         

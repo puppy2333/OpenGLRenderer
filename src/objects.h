@@ -97,10 +97,12 @@ public:
         dx = in_dx;
         h_n = int(h / dx);
         w_n = int(w / dx);
-        _getMesh();
+        std::cout << "h_n, w_n: " << h_n << " " << w_n << std::endl;
+        _getMesh2();
         _getVBOVAOEBO();
     };
     void _getMesh();
+    void _getMesh2();
     void _getVBOVAOEBO();
     void render() override;
 };
@@ -165,7 +167,8 @@ void Meshes::_getVBOVAOEBO()
     // ---------
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 8 * (h_n+1) * (w_n+1) * sizeof(float), vertexarray, GL_STATIC_DRAW);
+//    glBufferData(GL_ARRAY_BUFFER, 8 * (h_n+1) * (w_n+1) * sizeof(float), vertexarray, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 8 * 6 * h_n * w_n * sizeof(float), vertexarray, GL_STATIC_DRAW);
     
     // squareVAO
     // ---------
@@ -180,9 +183,9 @@ void Meshes::_getVBOVAOEBO()
     
     // EBO
     // ---
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+//    glGenBuffers(1, &EBO);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 }
 
 void Skyboxes::_getVBOVAO()
@@ -214,8 +217,9 @@ void Quads::render()
 void Meshes::render()
 {
     glBindVertexArray(VAO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glDrawElements(GL_TRIANGLES, 8 * (h_n+1) * (w_n+1), GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 8 * 6 * h_n * w_n);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+//    glDrawElements(GL_TRIANGLES, 8 * (h_n+1) * (w_n+1), GL_UNSIGNED_INT, 0);
 }
 
 // Vertices functions
@@ -377,6 +381,37 @@ void Meshes::_getMesh()
             indices[6 * tri_idx + 3] = getVertexIdx(x, y+1);
             indices[6 * tri_idx + 4] = getVertexIdx(x+1, y);
             indices[6 * tri_idx + 5] = getVertexIdx(x, y+1);
+        }
+    }
+}
+
+void Meshes::_getMesh2()
+{
+    auto getTriangleIdx = [&](int x, int y) -> unsigned int {
+        return y * this->w_n + x;
+    };
+    
+    vertexarray = new float[8 * 6 * h_n * w_n];
+    
+    int offset_x[] = {0, 1, 1, 0, 1, 0};
+    int offset_y[] = {0, 0, 1, 0, 1, 1};
+    
+    for (int y = 0; y < h_n; y++) {
+        for (int x = 0; x < w_n; x++) {
+            unsigned int idx = getTriangleIdx(x, y);
+            for (int i = 0; i < 6; i++) {
+                // position
+                vertexarray[8 * 6 * idx + i * 8    ] = (x + offset_x[i]) * dx;
+                vertexarray[8 * 6 * idx + i * 8 + 1] = (y + offset_y[i]) * dx;
+                vertexarray[8 * 6 * idx + i * 8 + 2] = 0.0f;
+                // normal
+                vertexarray[8 * 6 * idx + i * 8 + 3] = 0.0f;
+                vertexarray[8 * 6 * idx + i * 8 + 4] = 0.0f;
+                vertexarray[8 * 6 * idx + i * 8 + 5] = 1.0f;
+                // texture
+                vertexarray[8 * 6 * idx + i * 8 + 6] = (x + offset_x[i]) * dx;
+                vertexarray[8 * 6 * idx + i * 8 + 7] = (y + offset_y[i]) * dx;
+            }
         }
     }
 }
