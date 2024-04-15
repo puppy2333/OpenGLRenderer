@@ -217,7 +217,7 @@ void Quads::render()
 void Meshes::render()
 {
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 8 * 6 * h_n * w_n);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * h_n * w_n);
 //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 //    glDrawElements(GL_TRIANGLES, 8 * (h_n+1) * (w_n+1), GL_UNSIGNED_INT, 0);
 }

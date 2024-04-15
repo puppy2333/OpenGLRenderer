@@ -22,6 +22,9 @@ public:
     // Screen space ambient occlusion
     bool ssao;
     
+    bool swe_init;
+    int swe_tick_count;
+    
     MyImgui(GLFWwindow* window, bool in_show_demo_window=false, 
             int in_shadowtype=0,
             bool in_rendertype=false,
@@ -44,6 +47,9 @@ public:
         shadowtype = in_shadowtype;
         rendertype = in_rendertype;
         numray = in_numray;
+        swe_init = false;
+        ssao = false;
+        swe_tick_count = 0;
     };
     
     void newframe()
@@ -81,7 +87,8 @@ public:
             "screen space reflection",
             "DEBUG: vis ssao",
             "DEBUG: vis shadow map",
-            "Test render height field"
+            "DEBUG: render height field", 
+            "DEBUG: SWE"
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         

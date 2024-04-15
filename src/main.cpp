@@ -107,13 +107,7 @@ int main()
     // build and compile our shader programs
     // -------------------------------------
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
-    Shader cubeshader(prefix + "shader/cubeshader.vs", prefix + "shader/cubeshader.fs");
-    Shader floorshader(prefix + "shader/floorshader.vs", prefix + "shader/floorshader.fs");
     Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
-    Shader transparentshader(prefix + "shader/transparent_shader.vs", prefix + "shader/transparent_shader.fs");
-    Shader cubemapshader(prefix + "/shader/skyboxshader.vs", prefix + "shader/skyboxshader.fs");
-    Shader reflectshader(prefix + "/shader/reflectshader.vs", prefix + "shader/reflectshader.fs");
-    Shader refractshader(prefix + "/shader/refractshader.vs", prefix + "shader/refractshader.fs");
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
     Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
@@ -125,21 +119,22 @@ int main()
     Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
     Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/heightshader.fs");
     
+    Shader swe_init_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_init_shader.fs");
+    Shader swe_v_advect_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_advect_shader.fs");
+    Shader swe_h_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_h_int_shader.fs");
+    Shader swe_v_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_int_shader.fs");
+    Shader swe_writebuffer_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_writebuffer_shader.fs");
+    
     // Determine light position
     // ------------------------
     Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
-    light.shaderSetLight(cubeshader);
-    light.shaderSetLight(floorshader);
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
     
     // Generate texture
     // ----------------
     unsigned int texture_cube = genTexture(prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
-    //unsigned int texture_cube_specular = genTexture(prefix + "media/container2_specular.png", GL_CLAMP_TO_EDGE);
     unsigned int texture_floor = genTexture(prefix + "media/wall.jpg", GL_REPEAT);
-    //unsigned int texture_grass = genTexture(prefix + "media/grass.png", GL_CLAMP_TO_EDGE);
-    //unsigned int texture_window = genTexture(prefix + "media/blending_transparent_window.png", GL_CLAMP_TO_EDGE);
 
     // Generate objects
     // ----------------
@@ -182,7 +177,7 @@ int main()
     Meshes meshes(1, 1, 0.05);
     glm::mat4 mesh_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
     mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mesh_model = glm::scale(mesh_model, glm::vec3(1.0f, 1.0f, 1.0f));
+    mesh_model = glm::scale(mesh_model, glm::vec3(3.0f, 3.0f, 3.0f));
     meshes.addObject(mesh_model, 0);
     
     // load models
@@ -286,6 +281,22 @@ int main()
     GLuint ssaoColorBufferBlur = genGBufferRed16FTexture();
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
     
+    // Create SWE buffer1
+    // ------------------
+    GLuint sweFBO1;
+    glGenFramebuffers(1, &sweFBO1);
+    glBindFramebuffer(GL_FRAMEBUFFER, sweFBO1);
+    GLuint sweBuffer1 = genGBufferSWETexture();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sweBuffer1, 0);
+    
+    // Create SWE buffer2
+    // ------------------
+    GLuint sweFBO2;
+    glGenFramebuffers(1, &sweFBO2);
+    glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
+    GLuint sweBuffer2 = genGBufferSWETexture();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sweBuffer2, 0);
+    
     // Create height map buffer
     // ------------------------
     GLuint heightFBO;
@@ -303,25 +314,6 @@ int main()
     //glEnable(GL_CULL_FACE);
     
     // Shader properties
-    // -----------------
-    cubeshader.use();
-    cubeshader.setInt("material.diffuse", 0);
-    cubeshader.setInt("material.specular", 1);
-    cubeshader.setFloat("material.shininess", 64.0f);
-    // ---------------
-    floorshader.use();
-    floorshader.setInt("material.diffuse", 0);
-    floorshader.setVec3f("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-    floorshader.setFloat("material.shininess", 1.0f);
-    // -----------------
-    cubemapshader.use();
-    cubemapshader.setInt("skybox", 0);
-    // -----------------
-    reflectshader.use();
-    reflectshader.setInt("skybox", 0);
-    // -----------------
-    refractshader.use();
-    refractshader.setInt("skybox", 0);
     // -----------------
     screenshader.use();
     screenshader.setInt("screenTexture", 0);
@@ -633,6 +625,25 @@ int main()
         }
         
         else if (myimgui.rendertype == 4) {
+            
+            // Render floor
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_DEPTH_TEST);
+            
+            blinnphongshader_shadow.setMVP(cubes.models[0], view);
+            blinnphongshader_shadow.setVec3f("viewPos", ourcamera.Position);
+            blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
+            
+            blinnphongshader_shadow.setMVP(quads.models[0], view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            quads.render();
+            
+            // Render fluid surface
             glBindFramebuffer(GL_FRAMEBUFFER, heightFBO);
             glClear(GL_COLOR_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
@@ -640,9 +651,16 @@ int main()
             quads.render();
             
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            heightshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, heightBuffer);
+            heightshader.setMVP(meshes.models[0], view);
+            meshes.render();
+        }
+        else if (myimgui.rendertype == 5) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            
             glEnable(GL_DEPTH_TEST);
             
             blinnphongshader_shadow.setMVP(cubes.models[0], view);
@@ -650,27 +668,65 @@ int main()
             blinnphongshader_shadow.setInt("imgui_shadowtype", myimgui.shadowtype);
             
             // Render floor
-            for (int i = 0; i < quads.num-1; i++) {
-                blinnphongshader_shadow.setMVP(quads.models[i], view);
-                if (quads.textures[i] > 0) {
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
-                }
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            blinnphongshader_shadow.setMVP(quads.models[0], view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+            quads.render();
+            
+            if (myimgui.swe_tick_count % 100 == 0) {
+                glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDisable(GL_DEPTH_TEST);
+                swe_init_shader.use();
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, sweBuffer1);
                 quads.render();
             }
+            myimgui.swe_tick_count++;
             
-//            heightshader.use();
-//            glActiveTexture(GL_TEXTURE0);
-//            glBindTexture(GL_TEXTURE_2D, heightBuffer);
-//            heightshader.setMVP(quads.models[2], view);
-//            quads.render();
+            // SWE advect
+            glBindFramebuffer(GL_FRAMEBUFFER, sweFBO1);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            swe_v_advect_shader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sweBuffer2);
+            quads.render();
+
+            // SWE height integration
+            glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            swe_h_int_shader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sweBuffer1);
+            quads.render();
+
+            // SWE velocity integration
+            glBindFramebuffer(GL_FRAMEBUFFER, sweFBO1);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            swe_v_int_shader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sweBuffer2);
+            quads.render();
             
+            // Swap buffers
+            glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            swe_writebuffer_shader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sweBuffer1);
+            quads.render();
             
+            // Visualization
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
             heightshader.use();
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, heightBuffer);
+            glBindTexture(GL_TEXTURE_2D, sweBuffer2);
             heightshader.setMVP(meshes.models[0], view);
             meshes.render();
         }
@@ -685,7 +741,6 @@ int main()
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    cubeshader.del();
     lightshader.del();
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
