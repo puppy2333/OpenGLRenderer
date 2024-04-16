@@ -118,6 +118,7 @@ int main()
     Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
     Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
     Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/heightshader.fs");
+    //Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/blinnphongshader_shadow.fs");
     
     Shader swe_init_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_init_shader.fs");
     Shader swe_v_advect_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_advect_shader.fs");
@@ -130,6 +131,8 @@ int main()
     Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
+    heightshader.use();
+    heightshader.setVec3f("lightPos", light.Position);
     
     // Generate texture
     // ----------------
@@ -174,16 +177,19 @@ int main()
     quads.addObject(height_model, 0);
     
     // Mesh
-    Meshes meshes(1, 1, 0.05);
+    //Meshes meshes(1, 1, 0.05);
+    Meshes meshes(1, 1, 0.01);
     glm::mat4 mesh_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
     mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mesh_model = glm::scale(mesh_model, glm::vec3(3.0f, 3.0f, 3.0f));
+    mesh_model = glm::scale(mesh_model, glm::vec3(6.0f, 6.0f, 6.0f));
     meshes.addObject(mesh_model, 0);
     
     // load models
     // -----------
     // stbi_set_flip_vertically_on_load(true);
     Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
+    //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
+    
     
     // Generate sample kernel for ssao
     // -–-----------------------------
@@ -539,6 +545,7 @@ int main()
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
             model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+            //model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
             blinnphongshader_shadow.setMVP(model, view);
             ourModel.Draw(blinnphongshader_shadow);
             
@@ -728,6 +735,7 @@ int main()
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, sweBuffer2);
             heightshader.setMVP(meshes.models[0], view);
+            heightshader.setVec3f("viewPos", ourcamera.Position);
             meshes.render();
         }
         

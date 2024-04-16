@@ -73,6 +73,7 @@ public:
         }
 
         // The current code only support textures.size() == 1
+        //std::cout << "textures.size(): " <<  textures.size() << "\n";
         assert(textures.size() == 1);
         
         // bind appropriate textures
