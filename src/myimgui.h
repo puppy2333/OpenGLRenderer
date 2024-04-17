@@ -88,7 +88,9 @@ public:
             "DEBUG: vis ssao",
             "DEBUG: vis shadow map",
             "DEBUG: render height field", 
-            "DEBUG: SWE"
+            "shallow water equation",
+            "DEBUG: vis inverse ssao",
+            "subsurface scattering",
         };
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         

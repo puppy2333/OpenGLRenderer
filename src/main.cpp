@@ -118,13 +118,15 @@ int main()
     Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
     Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
     Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/heightshader.fs");
-    //Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/blinnphongshader_shadow.fs");
     
     Shader swe_init_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_init_shader.fs");
     Shader swe_v_advect_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_advect_shader.fs");
     Shader swe_h_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_h_int_shader.fs");
     Shader swe_v_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_int_shader.fs");
     Shader swe_writebuffer_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_writebuffer_shader.fs");
+    
+    Shader inv_ssaoshader(prefix + "/shader/sss/inv_ssaoshader.vs", prefix + "/shader/sss/inv_ssaoshader.fs");
+    Shader sss_shader(prefix + "/shader/sss/sss_shader.vs", prefix + "/shader/sss/sss_shader.fs");
     
     // Determine light position
     // ------------------------
@@ -151,6 +153,14 @@ int main()
     
     // cube
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -4.0f));
+    cubes.addObject(cube_model, texture_cube, true, true);
+    
+    // subsurface scattering cube
+    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 1.0f, 8.0f));
+    cubes.addObject(cube_model, texture_cube, true, true);
+    
+    // Light 2
+    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 1.0f, 7.0f));
     cubes.addObject(cube_model, texture_cube, true, true);
     
     // light
@@ -368,6 +378,17 @@ int main()
         ssaoshader.setVec3f("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
     }
     ssaoshader.setMat4f("projection", projection);
+    // -----------------
+    inv_ssaoshader.use();
+    inv_ssaoshader.setInt("gPosition", 0);
+    inv_ssaoshader.setInt("gNormal", 1);
+    inv_ssaoshader.setInt("gShadow", 2);
+    inv_ssaoshader.setInt("noiseTexture", 3);
+    // Send kernel
+    for (GLuint i = 0; i < 64; ++i) {
+        inv_ssaoshader.setVec3f("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+    }
+    inv_ssaoshader.setMat4f("projection", projection);
     
     // Lambda function of rendering to gbuffer
     // ---------------------------------------
@@ -616,6 +637,8 @@ int main()
             quads.render();
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
+        // DEBUG: visualize depth map from light
+        // -------------------------------------
         else if (myimgui.rendertype == 3) {
             // Shadowmap must be rendered before visualization
             assert(myimgui.shadowtype != 0);
@@ -630,7 +653,8 @@ int main()
             // finally render quad
             quads.render();
         }
-        
+        // DEBUG mesh: render a curve
+        // --------------------------
         else if (myimgui.rendertype == 4) {
             
             // Render floor
@@ -664,6 +688,8 @@ int main()
             heightshader.setMVP(meshes.models[0], view);
             meshes.render();
         }
+        // Shallow water equation
+        // ----------------------
         else if (myimgui.rendertype == 5) {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -737,6 +763,92 @@ int main()
             heightshader.setMVP(meshes.models[0], view);
             heightshader.setVec3f("viewPos", ourcamera.Position);
             meshes.render();
+        }
+        // Inversed SSAO
+        // -------------
+        else if (myimgui.rendertype == 6) {
+            renderToGbuffer();
+            
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); // Very important
+            inv_ssaoshader.use();
+            inv_ssaoshader.setViewMat(view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+            quads.render();
+            
+            // 3. blur SSAO texture to remove noise
+            // glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            ssaoblurshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+            quads.render();
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        // Subsurface scattering
+        // ---------------------
+        else if (myimgui.rendertype == 7) {
+            renderToGbuffer();
+            
+            // Generate SSAO texture
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
+            //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); // Very important
+            inv_ssaoshader.use();
+            inv_ssaoshader.setViewMat(view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gShadow);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+            quads.render();
+            
+            // Blur SSAO texture to remove noise
+            glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            ssaoblurshader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
+            quads.render();
+            
+            // Rendering floor
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            blinnphongshader_shadow.setMVP(quads.models[0], view);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, quads.textures[0]);
+            quads.render();
+            
+            // Rendering light
+            lightshader.setMVP(cubes.models[3], view);
+            cubes.render();
+            
+            // Rendering a cube
+            sss_shader.setMVP(cubes.models[2], view);
+            sss_shader.setVec3f("lightPos", glm::vec3(7.0f, 1.0f, 7.0f));
+            sss_shader.setVec3f("viewPos", ourcamera.Position);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
+            cubes.render();
         }
         
         // Start the Dear ImGui frame
