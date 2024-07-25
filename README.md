@@ -1,14 +1,19 @@
 # OpenGLRenderer
 Hi there! This is OpenGLRenderer, my tiny renderer that implements some widely-used rendering (and also simulation) algorithms.
+This project, developed during my spare time for about a month, is still in its early stages. I plan to add more features in the future.
+Some of the currently scheduled features are listed below:
+* Physics based rendering
+* Global illumination based on spherical harmonics
+* Screen space subsurface scattering
+* Denoising of ray tracing
 
-Currently this repo is only for demo purpose, so some 3rd-party libs are not included in the repo.
-If you want, you can add them manually according to CmakeList.
+Currently this repo is intended only for demonstration purpose, so some third-party libraries are not included in the repo.
 All the core algorithm are included.
 
 Here is what I have done.
 
 ## Defered Rendering
-Defered rendering is hard to demo, so it will be left blank here.
+Defered rendering is hard to demo, it will be left blank here.
 
 ## Screen space ray tracing
 I use specular reflection to demonstrate the effect of screen space ray tracing.
