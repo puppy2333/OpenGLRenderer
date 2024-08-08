@@ -117,14 +117,18 @@ int main()
     Shader ssaoshader(prefix + "/shader/ssaoshader.vs", prefix + "/shader/ssaoshader.fs");
     Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
     Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
-    Shader heightshader(prefix + "/shader/heightshader.vs", prefix + "/shader/heightshader.fs");
-    
-    Shader swe_init_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_init_shader.fs");
-    Shader swe_v_advect_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_advect_shader.fs");
-    Shader swe_h_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_h_int_shader.fs");
-    Shader swe_v_int_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_v_int_shader.fs");
-    Shader swe_writebuffer_shader(prefix + "/shader/swe/swe_shader.vs", prefix + "/shader/swe/swe_writebuffer_shader.fs");
-    
+
+    // Shallow water equation, simulation
+    Shader swe_init_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_init_shader.fs");
+    Shader swe_v_advect_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_advect_shader.fs");
+    Shader swe_h_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_h_int_shader.fs");
+    Shader swe_v_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_int_shader.fs");
+    Shader swe_writebuffer_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_writebuffer_shader.fs");
+
+    // Shallow water equation, rendering
+    Shader heightshader(prefix + "/shader/swe/rendering/heightshader.vs", prefix + "/shader/swe/rendering/heightshader_phong.fs");
+
+    // Screen space ambient occlusion
     Shader inv_ssaoshader(prefix + "/shader/sss/inv_ssaoshader.vs", prefix + "/shader/sss/inv_ssaoshader.fs");
     Shader sss_shader(prefix + "/shader/sss/sss_shader.vs", prefix + "/shader/sss/sss_shader.fs");
     
@@ -707,7 +711,22 @@ int main()
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
             quads.render();
-            
+
+            // Render floor (deffered rendering) (prepare to be used in refraction of SWE surface)
+//            for (int i = 0; i < quads.num; i++) {
+//                gbuffershader.setModelMat(quads.models[i]);
+//                gbuffershader.setBool("is_mirror", cubes.ismirror[i]);
+//                if (quads.textures[i] > 0) {
+//                    glActiveTexture(GL_TEXTURE0);
+//                    glBindTexture(GL_TEXTURE_2D, quads.textures[i]);
+//                }
+//                glActiveTexture(GL_TEXTURE1);
+//                glBindTexture(GL_TEXTURE_2D, texture_depth_framebuffer);
+//                quads.render();
+//            }
+
+            // SWE initialization
+            // ------------------
             if (myimgui.swe_tick_count % 100 == 0) {
                 glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
                 glClear(GL_COLOR_BUFFER_BIT);
@@ -718,7 +737,10 @@ int main()
                 quads.render();
             }
             myimgui.swe_tick_count++;
-            
+
+            // SWE simulation
+            // --------------
+
             // SWE advect
             glBindFramebuffer(GL_FRAMEBUFFER, sweFBO1);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -755,7 +777,8 @@ int main()
             glBindTexture(GL_TEXTURE_2D, sweBuffer1);
             quads.render();
             
-            // Visualization
+            // SWE rendering
+            // -------------
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             heightshader.use();
             glActiveTexture(GL_TEXTURE0);
