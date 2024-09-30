@@ -878,6 +878,10 @@ int main()
         // Start the Dear ImGui frame
         // --------------------------
         myimgui.newframe();
+
+        if (!myimgui.opened_file_path.empty()) {
+            // An object can be placed here
+        }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);

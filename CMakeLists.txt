@@ -10,7 +10,7 @@ find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(assimp REQUIRED)
 
-file(GLOB_RECURSE SRCS "src/*.h" "lib/*.c" "lib/imui/*.cpp")
+file(GLOB_RECURSE SRCS "src/*.h" "lib/*.c" "lib/imui/*.cpp" "lib/tinyfd/*.c")
 set(TARGET_SOURCES ${SRCS})
 
 

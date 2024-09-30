@@ -8,6 +8,9 @@
 #ifndef imgui_h
 #define imgui_h
 
+// Project website: http://tinyfiledialogs.sourceforge.net
+#include "tinyfd/tinyfiledialogs.h"
+
 class MyImgui
 {
 public:
@@ -21,7 +24,10 @@ public:
     int numray;
     // Screen space ambient occlusion
     bool ssao;
-    
+
+    // User opened file
+    std::string opened_file_path;
+
     bool swe_init;
     int swe_tick_count;
 
@@ -98,7 +104,7 @@ public:
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
 
-        ImGui::Begin("Rendering settings");
+        ImGui::Begin("Rendering settings", NULL, ImGuiWindowFlags_MenuBar);
 
         ImGui::Combo("Shadow mapping type", &shadowtype, shadowtype_list, IM_ARRAYSIZE(shadowtype_list));
 
@@ -111,7 +117,31 @@ public:
         //ImGui::SliderInt("Num of rays", &numray, 1, 8);
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        
+
+        // Menu Bar
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Open..", "Ctrl+O")) {
+                    // char const * lFilterPatterns[2] = { "*.txt", "*.text" };
+                    const char * file_path = tinyfd_openFileDialog(
+                        "Select file", // title
+                        "",
+                        0, // number of filter patterns
+                        NULL, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
+                        NULL, // optional filter description
+                        0 // forbids multiple selections
+                    );
+                    if (file_path == nullptr) opened_file_path = "";
+                    else opened_file_path = std::string(file_path);
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        // Performance
         ImGui::SeparatorText("Performance");
         ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::End();
