@@ -54,7 +54,7 @@ public:
         // ------------------------
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGuiIO& io = ImGui::GetIO(); //(void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
         ImGui::StyleColorsDark(); // Setup Dear ImGui style
@@ -71,13 +71,19 @@ public:
         ssao = false;
         swe_tick_count = 0;
 
+        io.FontGlobalScale = 1.5f;
+
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        #ifdef __APPLE__
-                ImGui::SetNextWindowPos(ImVec2(10, 400));
-        #else
-                ImGui::SetNextWindowPos(ImVec2(10, 960));
-        #endif
-                ImGui::SetNextWindowSize(ImVec2(500, 180));
+#ifdef __APPLE__
+        ImGui::SetNextWindowPos(ImVec2(10, 400));
+        ImGui::SetNextWindowSize(ImVec2(500, 180));
+#elif defined(__linux__)
+        ImGui::SetNextWindowPos(ImVec2(10, 960));
+        ImGui::SetNextWindowSize(ImVec2(600, 220));
+#else
+        ImGui::SetNextWindowPos(ImVec2(10, 960));
+        ImGui::SetNextWindowSize(ImVec2(500, 180));
+#endif
     };
     
     void newframe()
@@ -87,7 +93,6 @@ public:
         ImGui::NewFrame();
         
         ImGuiIO& io = ImGui::GetIO();
-        io.FontGlobalScale = 2.0f;
 
         // 1. Show the big demo window
         if (show_demo_window)
