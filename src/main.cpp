@@ -70,7 +70,7 @@ int main()
 #else
     GLFWwindow* window = glfwCreateWindow(2 * SCR_WIDTH, 2 * SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 #endif
-    if (window == NULL)
+    if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -147,6 +147,7 @@ int main()
 
     // Generate objects
     // ----------------
+    Objects objects; // Should use this class to represent all the objects
     Cubes cubes;
     Quads quads;
     

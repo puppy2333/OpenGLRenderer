@@ -24,6 +24,26 @@ public:
     
     bool swe_init;
     int swe_tick_count;
+
+    // List of shadow types
+    const char* shadowtype_list[4] = {
+            "no shadow",
+            "vanilla",
+            "percentage-closer filtering (PCF)",
+            "percentage colser soft shadows (PCSS)"
+    };
+
+    // List of render options
+    const char* rendertype_list[8] = {
+            "direct lightning",
+            "screen space reflection",
+            "DEBUG: vis ssao",
+            "DEBUG: vis shadow map",
+            "DEBUG: render height field",
+            "shallow water equation",
+            "DEBUG: vis inverse ssao",
+            "subsurface scattering",
+    };
     
     MyImgui(GLFWwindow* window, bool in_show_demo_window=false, 
             int in_shadowtype=0,
@@ -50,6 +70,14 @@ public:
         swe_init = false;
         ssao = false;
         swe_tick_count = 0;
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        #ifdef __APPLE__
+                ImGui::SetNextWindowPos(ImVec2(10, 400));
+        #else
+                ImGui::SetNextWindowPos(ImVec2(10, 960));
+        #endif
+                ImGui::SetNextWindowSize(ImVec2(500, 180));
     };
     
     void newframe()
@@ -59,39 +87,16 @@ public:
         ImGui::NewFrame();
         
         ImGuiIO& io = ImGui::GetIO();
+        io.FontGlobalScale = 2.0f;
 
         // 1. Show the big demo window
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        //ImGui::SetNextWindowPos(ImVec2(10, 10));
-#ifdef __APPLE__
-        ImGui::SetNextWindowPos(ImVec2(10, 400));
-#else
-        ImGui::SetNextWindowPos(ImVec2(10, 960));
-#endif
-        ImGui::SetNextWindowSize(ImVec2(500, 180));
         ImGui::Begin("Rendering settings");
-        
-        const char* shadowtype_list[] = {
-            "no shadow",
-            "vanilla",
-            "percentage-closer filtering (PCF)",
-            "percentage colser soft shadows (PCSS)"
-        };
+
         ImGui::Combo("Shadow mapping type", &shadowtype, shadowtype_list, IM_ARRAYSIZE(shadowtype_list));
-        
-        const char* rendertype_list[] = {
-            "direct lightning",
-            "screen space reflection",
-            "DEBUG: vis ssao",
-            "DEBUG: vis shadow map",
-            "DEBUG: render height field", 
-            "shallow water equation",
-            "DEBUG: vis inverse ssao",
-            "subsurface scattering",
-        };
+
         ImGui::Combo("Rendering type", &rendertype, rendertype_list, IM_ARRAYSIZE(rendertype_list));
         
         //ImGui::SeparatorText("Sliders");
