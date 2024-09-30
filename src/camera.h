@@ -78,7 +78,7 @@ public:
     }
     void SetProjectMatrix(float ratio)
     {
-        projection = glm::perspective((float)glm::radians(45.0f), ratio, 1.0f, 40.0f);
+        projection = glm::perspective((float)glm::radians(45.0f), ratio, 1.0f, 400.0f);
     }
     glm::mat4 GetProjectMatrix()
     {

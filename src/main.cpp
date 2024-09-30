@@ -202,7 +202,8 @@ int main()
     // load models
     // -----------
     // stbi_set_flip_vertically_on_load(true);
-    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
+//    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
+    Model ourModel(prefix + "media/Sponza/glTF/Sponza.gltf");
     //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
     
     
@@ -478,7 +479,8 @@ int main()
             
             // render the loaded model
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 1.0f));
-            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+            //model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+            model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
             depthmapshader.setMat4f("model", model);
             ourModel.Draw(depthmapshader);
             
@@ -570,7 +572,8 @@ int main()
             blinnphongshader_shadow.use();
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
-            model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+            //model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
+            model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
             //model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
             blinnphongshader_shadow.setMVP(model, view);
             ourModel.Draw(blinnphongshader_shadow);
