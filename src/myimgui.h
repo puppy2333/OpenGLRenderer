@@ -125,9 +125,12 @@ public:
             {
                 if (ImGui::MenuItem("Open..", "Ctrl+O")) {
                     // char const * lFilterPatterns[2] = { "*.txt", "*.text" };
+
+                    auto current_path = std::filesystem::current_path() / "../media/";
+
                     const char * file_path = tinyfd_openFileDialog(
                         "Select file", // title
-                        "",
+                        current_path.c_str(),
                         0, // number of filter patterns
                         NULL, // char const * lFilterPatterns[2] = { "*.txt", "*.jpg" };
                         NULL, // optional filter description

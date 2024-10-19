@@ -201,11 +201,12 @@ int main()
     
     // load models
     // -----------
+    std::vector<Model> models;
+//    models.emplace_back(prefix + "media/Sponza/glTF/Sponza.gltf");
     // stbi_set_flip_vertically_on_load(true);
 //    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
-    Model ourModel(prefix + "media/Sponza/glTF/Sponza.gltf");
+//    Model ourModel(prefix + "media/Sponza/glTF/Sponza.gltf");
     //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
-    
     
     // Generate sample kernel for ssao
     // -–-----------------------------
@@ -447,7 +448,9 @@ int main()
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
         gbuffershader.setModelMat(model);
         gbuffershader.setBool("is_mirror", false);
-        ourModel.Draw(gbuffershader);
+        for (Model m: models) {
+            m.Draw(gbuffershader);
+        }
     };
     
     // render loop
@@ -482,7 +485,9 @@ int main()
             //model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
             model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
             depthmapshader.setMat4f("model", model);
-            ourModel.Draw(depthmapshader);
+            for (Model m: models) {
+                m.Draw(depthmapshader);
+            }
             
             // Render floor
             for (int i = 0; i < quads.num; i++) {
@@ -576,8 +581,9 @@ int main()
             model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
             //model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
             blinnphongshader_shadow.setMVP(model, view);
-            ourModel.Draw(blinnphongshader_shadow);
-            
+            for (Model m: models) {
+                m.Draw(blinnphongshader_shadow);
+            }
         }
         // Deferred rendering
         // ------------------
@@ -884,6 +890,8 @@ int main()
 
         if (!myimgui.opened_file_path.empty()) {
             // An object can be placed here
+            models.emplace_back(myimgui.opened_file_path);
+            myimgui.opened_file_path.clear();
         }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
