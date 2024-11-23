@@ -10,7 +10,7 @@
 #define INV_PI 0.3183099
 #define INV_TWO_PI 0.1591549
 
-// Shadow map related variables
+// Poisson disk sample
 #define NUM_SAMPLES 64
 #define BLOCKER_SEARCH_NUM_SAMPLES NUM_SAMPLES
 #define PCF_NUM_SAMPLES NUM_SAMPLES
@@ -40,6 +40,7 @@ uniform int imgui_shadowtype;
 // Global list for poisson disk samples
 vec2 poissonDisk[NUM_SAMPLES];
 
+// Hw1 of GAMES 202
 float rand_1to1(float x) {
     // -1 -1
     return fract(sin(x)*10000.0);

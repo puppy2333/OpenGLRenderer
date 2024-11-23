@@ -322,15 +322,18 @@ void Cubes::_getCubeWithUV()
 
 void Quads::_getQuad()
 {
+    float texture_repeat_times = 2.0f;
+
     vertexarray = new float[48] {
     //  ------- pos ------- ----- normal ----- -- texture --
         -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f,
-         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  1.0f,
-         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  0.0f,
-         1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  texture_repeat_times,  0.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  texture_repeat_times,
+        -1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  texture_repeat_times,
+         1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  texture_repeat_times,  0.0f,
+         1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  texture_repeat_times,  texture_repeat_times,
     };
+
 //    vertexarray = new float[48] {
 //    //  ------- pos ------- ----- normal ----- -- texture --
 //        -0.1f, -0.8f, 0.0f, 0.0f, 0.0f, 1.0f,  0.0f,  0.0f,

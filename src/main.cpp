@@ -95,7 +95,9 @@ int main()
     // Set prefix
     // ----------
 #ifdef __APPLE__
-    std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
+    std::string prefix = "../";
+    // For Xcode project
+    // std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
 #else
 //    std::string prefix = "D:/Learn_OpenGL/";
     std::string prefix = "../";
@@ -142,8 +144,9 @@ int main()
     
     // Generate texture
     // ----------------
-    unsigned int texture_cube = genTexture(prefix + "media/container2.png", GL_CLAMP_TO_EDGE);
-    unsigned int texture_floor = genTexture(prefix + "media/wall.jpg", GL_REPEAT);
+    unsigned int texture_cube = genTexture(prefix + "media/materials/container2.png", GL_CLAMP_TO_EDGE);
+    // unsigned int texture_floor = genTexture(prefix + "media/material/wall.jpg", GL_REPEAT);
+    unsigned int texture_floor = genTexture(prefix + "media/materials/Asphalt031_1K-JPG/Asphalt031_1K-JPG_Color.jpg", GL_REPEAT);
 
     // Generate objects
     // ----------------
