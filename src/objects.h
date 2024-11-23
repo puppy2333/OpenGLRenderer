@@ -322,7 +322,7 @@ void Cubes::_getCubeWithUV()
 
 void Quads::_getQuad()
 {
-    float texture_repeat_times = 2.0f;
+    float texture_repeat_times = 1.0f;
 
     vertexarray = new float[48] {
     //  ------- pos ------- ----- normal ----- -- texture --

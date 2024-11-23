@@ -147,7 +147,7 @@ int main()
     // ----------------
     unsigned int texture_cube = genTexture(prefix + "media/materials/container2.png", GL_CLAMP_TO_EDGE);
     // unsigned int texture_floor = genTexture(prefix + "media/material/wall.jpg", GL_REPEAT);
-    unsigned int texture_floor = genTexture(prefix + "media/materials/Asphalt031_1K-JPG/Asphalt031_1K-JPG_Color.jpg", GL_REPEAT);
+    unsigned int texture_floor = genTexture(prefix + "media/materials/Asphalt031_4K-JPG/Asphalt031_4K-JPG_Color.jpg", GL_REPEAT);
 
     // Generate objects
     // ----------------
@@ -184,7 +184,7 @@ int main()
     quads.addObject(floor_model, texture_floor);
     
     // mirror
-    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -0.9f, 1.0f));
+    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.5f, -0.95f, 1.0f));
     mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
     quads.addObject(mirror_model, 0, true, true);
