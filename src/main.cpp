@@ -109,7 +109,7 @@ int main()
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
     Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
-    Shader depthmapshader(prefix + "/shader/depthmapshader.vs", prefix + "shader/depthmapshader.fs");
+    Shader depthmapshader(prefix + "/shader/shadow_map/depthmapshader.vs", prefix + "shader/shadow_map/depthmapshader.fs");
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
     Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
     Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
@@ -474,7 +474,7 @@ int main()
             // Render cube
             depthmapshader.use();
             for (int i = 0; i < cubes.num; i++) {
-                if (cubes.cast_shadow[i] == true) {
+                if (cubes.cast_shadow[i]) {
                     depthmapshader.setMat4f("model", cubes.models[i]);
                     cubes.render();
                 }
