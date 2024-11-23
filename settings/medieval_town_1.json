@@ -1,0 +1,15 @@
+{
+  "model": {
+    "gltf_path": "media/medieval_town/medieval_house_1/scene.gltf",
+    "translate": {
+      "x": 0.0,
+      "y": -1.0,
+      "z": 1.0
+    },
+    "scale": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
+    }
+  }
+}

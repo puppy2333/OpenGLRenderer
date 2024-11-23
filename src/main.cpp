@@ -41,6 +41,7 @@
 #include "utils.h"
 //#include "globjects.h"
 #include "myimgui.h"
+#include "json.h"
 
 int main()
 {
@@ -210,7 +211,10 @@ int main()
 //    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
 //    Model ourModel(prefix + "media/Sponza/glTF/Sponza.gltf");
     //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
-    
+
+    ModelData model_data = load_json();
+    models.emplace_back(prefix + model_data.gltf_path);
+
     // Generate sample kernel for ssao
     // -–-----------------------------
     std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0);
@@ -447,8 +451,8 @@ int main()
         
         // Render loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        model = glm::translate(model, model_data.translate);
+        model = glm::scale(model, model_data.scale);
         gbuffershader.setModelMat(model);
         gbuffershader.setBool("is_mirror", false);
         for (Model m: models) {
@@ -484,9 +488,9 @@ int main()
             }
             
             // render the loaded model
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 1.0f));
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), model_data.translate);
             //model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-            model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+            model = glm::scale(model, model_data.scale);
             depthmapshader.setMat4f("model", model);
             for (Model m: models) {
                 m.Draw(depthmapshader);
@@ -579,9 +583,9 @@ int main()
             // render the loaded model
             blinnphongshader_shadow.use();
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, glm::vec3(0.0f, -1.0f, 1.0f));
+            model = glm::translate(model, model_data.translate);
             //model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // it's a bit too big for our scene, so scale it down
-            model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+            model = glm::scale(model, model_data.scale);
             //model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
             blinnphongshader_shadow.setMVP(model, view);
             for (Model m: models) {
