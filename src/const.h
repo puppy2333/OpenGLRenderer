@@ -21,4 +21,6 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
+bool init_wave = false;
+
 #endif /* const_h */

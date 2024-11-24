@@ -72,6 +72,9 @@ void processInput(GLFWwindow *window)
         ourcamera.ProcessKeyboard(MOUSE_UP, cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         ourcamera.ProcessKeyboard(MOUSE_DOWN, cameraSpeed);
+    
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        init_wave = true;
 }
 
 #endif /* callbacks_h */

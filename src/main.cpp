@@ -79,7 +79,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
+    // glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     // glad: load all OpenGL function pointers
@@ -116,12 +116,10 @@ int main()
     Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
     Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
     Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
-    Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");
-    Shader ssaoshader(prefix + "/shader/ssaoshader.vs", prefix + "/shader/ssaoshader.fs");
-    Shader ssaoblurshader(prefix + "/shader/ssaoblurshader.vs", prefix + "/shader/ssaoblurshader.fs");
-    Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
+    Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");    
 
     // Shallow water equation, simulation
+    Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
     Shader swe_init_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_init_shader.fs");
     Shader swe_v_advect_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_advect_shader.fs");
     Shader swe_h_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_h_int_shader.fs");
@@ -131,8 +129,12 @@ int main()
     // Shallow water equation, rendering
     Shader heightshader(prefix + "/shader/swe/rendering/heightshader.vs", prefix + "/shader/swe/rendering/heightshader_phong.fs");
 
-    // Screen space ambient occlusion
-    Shader inv_ssaoshader(prefix + "/shader/sss/inv_ssaoshader.vs", prefix + "/shader/sss/inv_ssaoshader.fs");
+    // Screen space ambient occlusion shader
+    Shader ssaoshader(prefix + "/shader/ssao/ssaoshader.vs", prefix + "/shader/ssao/ssaoshader.fs");
+    Shader ssaoblurshader(prefix + "/shader/ssao/ssaoblurshader.vs", prefix + "/shader/ssao/ssaoblurshader.fs");
+    Shader inv_ssaoshader(prefix + "/shader/ssao/inv_ssaoshader.vs", prefix + "/shader/ssao/inv_ssaoshader.fs");
+    
+    // Screen space scattering shader
     Shader sss_shader(prefix + "/shader/sss/sss_shader.vs", prefix + "/shader/sss/sss_shader.fs");
     
     // Determine light position
@@ -162,11 +164,11 @@ int main()
     
     // cube
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -4.0f));
-    cubes.addObject(cube_model, texture_cube, true, true);
+    // cubes.addObject(cube_model, texture_cube, true, true);
     
     // subsurface scattering cube
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 1.0f, 8.0f));
-    cubes.addObject(cube_model, texture_cube, true, true);
+    // cubes.addObject(cube_model, texture_cube, true, true);
     
     // Light 2
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 1.0f, 7.0f));
@@ -184,10 +186,11 @@ int main()
     quads.addObject(floor_model, texture_floor);
     
     // mirror
-    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.5f, -0.95f, 1.0f));
+    // glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.5f, -0.95f, 1.0f));
+    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.7f, -0.95f, 1.0f));
     mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
-    quads.addObject(mirror_model, 0, true, true);
+    // quads.addObject(mirror_model, 0, true, true);
     
     // Fluid height
     glm::mat4 height_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
@@ -225,7 +228,7 @@ int main()
         glm::vec3 sample(
             randomFloats(generator) * 2.0 - 1.0,
             randomFloats(generator) * 2.0 - 1.0,
-            randomFloats(generator)
+            randomFloats(generator) * 0.9 + 0.1
         );
         sample = glm::normalize(sample);
         sample *= randomFloats(generator);
@@ -742,9 +745,22 @@ int main()
 //                quads.render();
 //            }
 
-            // SWE initialization
-            // ------------------
-            if (myimgui.swe_tick_count % 100 == 0) {
+            // SWE initialization (periodically)
+            // ---------------------------------
+            // if (myimgui.swe_tick_count % 100 == 0) {
+            //     glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
+            //     glClear(GL_COLOR_BUFFER_BIT);
+            //     glDisable(GL_DEPTH_TEST);
+            //     swe_init_shader.use();
+            //     glActiveTexture(GL_TEXTURE0);
+            //     glBindTexture(GL_TEXTURE_2D, sweBuffer1);
+            //     quads.render();
+            // }
+            // myimgui.swe_tick_count++;
+
+            // SWE initialization (by keyboard)
+            // --------------------------------
+            if (init_wave) {
                 glBindFramebuffer(GL_FRAMEBUFFER, sweFBO2);
                 glClear(GL_COLOR_BUFFER_BIT);
                 glDisable(GL_DEPTH_TEST);
@@ -752,8 +768,8 @@ int main()
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, sweBuffer1);
                 quads.render();
+                init_wave = false;
             }
-            myimgui.swe_tick_count++;
 
             // SWE simulation
             // --------------
@@ -899,6 +915,22 @@ int main()
             // An object can be placed here
             models.emplace_back(myimgui.opened_file_path);
             myimgui.opened_file_path.clear();
+        }
+        if (myimgui.camera_moved) {
+            ourcamera.Position.x = myimgui.camera_position[0];
+            ourcamera.Position.y = myimgui.camera_position[1];
+            ourcamera.Position.z = myimgui.camera_position[2];
+            myimgui.camera_moved = false;
+        }
+        if (myimgui.camera_yaw_moved) {
+            ourcamera.Yaw = myimgui.camera_yaw;
+            myimgui.camera_yaw_moved = false;
+            ourcamera.updateCameraVectors();
+        }
+        if (myimgui.camera_pitch_moved) {
+            ourcamera.Pitch = myimgui.camera_pitch;
+            myimgui.camera_pitch_moved = false;
+            ourcamera.updateCameraVectors();
         }
         
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

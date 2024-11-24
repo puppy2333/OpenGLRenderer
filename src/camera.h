@@ -110,12 +110,14 @@ public:
         if (direction == MOUSE_DOWN)
             Pitch -= 10 * velocity;
         
-        if (direction == MOUSE_LEFT || direction == MOUSE_RIGHT || direction == MOUSE_UP || direction == MOUSE_DOWN)
+        if (direction == MOUSE_LEFT || direction == MOUSE_RIGHT || direction == MOUSE_UP || direction == MOUSE_DOWN) {
             if (Pitch > 89.0f)
                 Pitch = 89.0f;
             if (Pitch < -89.0f)
                 Pitch = -89.0f;
-            updateCameraVectors();
+        }
+        
+        updateCameraVectors();
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -150,7 +152,6 @@ public:
             Zoom = 45.0f;
     }
 
-private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {

@@ -31,6 +31,20 @@ public:
     bool swe_init;
     int swe_tick_count;
 
+    bool init_wave = false;
+
+    float camera_position_old[3] = {0.0, 0.0, 0.0};
+    float camera_position[3] = {0.0, 0.0, 0.0};
+    bool camera_moved = false;
+
+    float camera_yaw_old = 0.0;
+    float camera_yaw = 0.0;
+    bool camera_yaw_moved = false;
+
+    float camera_pitch_old = 0.0;
+    float camera_pitch = 0.0;
+    bool camera_pitch_moved = false;
+
     // List of shadow types
     const char* shadowtype_list[4] = {
             "no shadow",
@@ -77,12 +91,14 @@ public:
         ssao = false;
         swe_tick_count = 0;
 
+#ifdef __linux__
         io.FontGlobalScale = 1.5f;
+#endif
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
 #ifdef __APPLE__
-        ImGui::SetNextWindowPos(ImVec2(10, 400));
-        ImGui::SetNextWindowSize(ImVec2(500, 180));
+        ImGui::SetNextWindowPos(ImVec2(10, 500));
+        ImGui::SetNextWindowSize(ImVec2(500, 100));
 #elif defined(__linux__)
         ImGui::SetNextWindowPos(ImVec2(10, 960));
         ImGui::SetNextWindowSize(ImVec2(600, 220));
@@ -117,6 +133,36 @@ public:
         //ImGui::SliderInt("Num of rays", &numray, 1, 8);
         
         ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        
+        ImGui::InputFloat3("Camera position", camera_position, "%.4f");
+        if (
+            abs(camera_position[0] - camera_position_old[0]) > 1e-4 or 
+            abs(camera_position[1] - camera_position_old[1]) > 1e-4 or 
+            abs(camera_position[2] - camera_position_old[2]) > 1e-4) 
+        {
+            camera_moved = true;
+            std::copy(camera_position, camera_position + 3, camera_position_old);
+            // camera_position_old[0] = camera_position[0];
+            // camera_position_old[1] = camera_position[1];
+            // camera_position_old[2] = camera_position[2];
+        }
+
+        ImGui::InputFloat("Camera yaw", &camera_yaw, 0.0f, 0.0f, "%.4f");
+        if (abs(camera_yaw - camera_yaw_old) > 1e-4) 
+        {
+            camera_yaw_moved = true;
+            camera_yaw_old = camera_yaw;
+        }
+
+        ImGui::InputFloat("Camera pitch", &camera_pitch, 0.0f, 0.0f, "%.4f");
+        if (abs(camera_pitch - camera_pitch_old) > 1e-4) 
+        {
+            camera_pitch_moved = true;
+            camera_pitch_old = camera_pitch;
+        }
+
+        static char buf[32];
+        ImGui::InputText(" input", buf, IM_ARRAYSIZE(buf));
 
         // Menu Bar
         if (ImGui::BeginMenuBar())

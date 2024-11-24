@@ -10,8 +10,9 @@ uniform sampler2D noiseTexture;
 
 uniform vec3 samples[64];
 
-int kernelSize = 32;
-float radius = 2.0;
+int kernelSize = 64;
+// float radius = 2.0;
+float radius = 0.5;
 
 // tile noise texture over screen based on screen dimensions divided by noise size
 const vec2 noiseScale = vec2(1600.0f/4.0f, 1200.0f/4.0f);
@@ -63,11 +64,11 @@ void main()
         
         // range check & accumulate
         float rangeCheck = smoothstep(1.0, 0.0, abs(depth - sampleDepth) / radius);
-        if (abs(depth - sampleDepth) < 0.1)
+        if (abs(depth - sampleDepth) < 0.05)
             rangeCheck = 0;
         occlusion += (sampleDepth <= depth ? 1.0 : 0.0) * rangeCheck;
     }
-    occlusion = 1.0 - (occlusion / kernelSize);
+    occlusion = 1.0 - (occlusion / (kernelSize / 1.5));
     //occlusion /= kernelSize;
     
     FragColor = vec4(occlusion, occlusion, occlusion, 1.0);

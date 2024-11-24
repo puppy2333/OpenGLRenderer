@@ -1,0 +1,12 @@
+{
+    "camera_settings": {
+        "camera_position": {
+            "x": 0.0, 
+            "y": 0.5, 
+            "z": 8.0
+        },
+        "camera_yaw": -90,
+        "camera_pitch": 0
+    },
+    "light_magnitude": 3.5
+}

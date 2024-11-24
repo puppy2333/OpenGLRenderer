@@ -137,7 +137,7 @@ void main()
         ao = texture(ssaoColorBufferBlur, TexCoords).r;
     }
     
-    vec3 lightColor = vec3(1.0);
+    vec3 lightColor = vec3(1.5);
     vec3 lightDir = normalize(lightPos - fragPos);
     
     if (depth < 1.0f) {
