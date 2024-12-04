@@ -93,7 +93,7 @@ public:
                 number = std::to_string(specularNr++); // transfer unsigned int to string
             else if(name == "texture_normal")
                 number = std::to_string(normalNr++); // transfer unsigned int to string
-             else if(name == "texture_height")
+            else if(name == "texture_height")
                 number = std::to_string(heightNr++); // transfer unsigned int to string
 
             // now set the sampler to the correct texture unit

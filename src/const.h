@@ -23,4 +23,12 @@ bool firstMouse = true;
 
 bool init_wave = false;
 
+// Type of object
+enum ObjectType {
+    Normal,
+    Mirror,
+    SemiTransparent,
+    Light
+};
+
 #endif /* const_h */

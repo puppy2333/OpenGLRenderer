@@ -23,6 +23,7 @@
 #include <memory>
 #include <filesystem>
 #include <random>
+#include <cmath>
 
 // UI (ref. https://github.com/ocornut/imgui)
 #include <imui/imgui.h>
@@ -30,13 +31,13 @@
 #include <imui/imgui_impl_opengl3.h>
 
 // My files
-#include "model.h"
+#include "model/model.h"
 #include "camera.h"
 #include "shader_s.h"
-#include "objects.h"
+#include "model/polyhedron.h"
 #include "light.h"
 #include "const.h"
-#include "texture.h"
+#include "model/texture.h"
 #include "callbacks.h"
 #include "utils.h"
 //#include "globjects.h"
@@ -139,11 +140,11 @@ int main()
     
     // Determine light position
     // ------------------------
-    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
+    Cube light(Light, glm::vec3(-4.0f, 8.0f, -6.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     blinnphongshader_shadow.use();
-    blinnphongshader_shadow.setVec3f("lightPos", light.Position);
+    blinnphongshader_shadow.setVec3f("lightPos", light.position);
     heightshader.use();
-    heightshader.setVec3f("lightPos", light.Position);
+    heightshader.setVec3f("lightPos", light.position);
     
     // Generate texture
     // ----------------
@@ -153,22 +154,16 @@ int main()
 
     // Generate objects
     // ----------------
-    Objects objects; // Should use this class to represent all the objects
-    Cubes cubes;
-    Quads quads;
-    
+    std::vector<Polyhedron> polyhedron_list;
+
     // High cube
-    glm::mat4 cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, -0.5f, -3.0f));
-    cube_model = glm::scale(cube_model, glm::vec3(1.0f, 2.0f, 1.0f));
-    cubes.addObject(cube_model, texture_cube);
+    polyhedron_list.emplace_back(Cube(Normal, glm::vec3(4.0f, -0.5f, -3.0f), glm::vec3(1.0f, 2.0f, 1.0f)));
     
-    // cube
-    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, -0.5f, -4.0f));
-    // cubes.addObject(cube_model, texture_cube, true, true);
+    // Cube
+    polyhedron_list.emplace_back(Cube(Normal, glm::vec3(-1.0f, -0.5f, -4.0f)));
     
     // subsurface scattering cube
-    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 1.0f, 8.0f));
-    // cubes.addObject(cube_model, texture_cube, true, true);
+    polyhedron_list.emplace_back(Cube(SemiTransparent, glm::vec3(6.0f, 1.0f, 8.0f)));
     
     // Light 2
     cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 1.0f, 7.0f));
@@ -233,7 +228,7 @@ int main()
         sample = glm::normalize(sample);
         sample *= randomFloats(generator);
         GLfloat scale = GLfloat(i) / 64.0;
-        scale = lerp(0.1f, 1.0f, scale * scale);
+        scale = std::lerp(0.1f, 1.0f, scale * scale);
         sample *= scale;
         ssaoKernel.push_back(sample);
     }
