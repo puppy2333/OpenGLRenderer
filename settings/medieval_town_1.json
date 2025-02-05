@@ -1,4 +1,16 @@
 {
+  "light": {
+    "position": {
+      "x": 0.0,
+      "y": -1.0,
+      "z": 1.0
+    },
+    "color": {
+      "r": 1.0,
+      "g": 1.0,
+      "b": 1.0
+    }
+  },
   "model": {
     "gltf_path": "media/medieval_town/medieval_house_1/scene.gltf",
     "translate": {

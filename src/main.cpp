@@ -80,7 +80,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    // glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     // glad: load all OpenGL function pointers
@@ -112,31 +112,31 @@ int main()
     // -------------------------------------
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
-    Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
-    Shader depthmapshader(prefix + "/shader/shadow_map/depthmapshader.vs", prefix + "shader/shadow_map/depthmapshader.fs");
-    Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
-    Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
-    Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
-    Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");    
+    Shader screenshader(prefix + "shader/screenshader.vs", prefix + "shader/screenshader.fs");
+    Shader depthmapshader(prefix + "shader/shadow_map/depthmapshader.vs", prefix + "shader/shadow_map/depthmapshader.fs");
+    Shader blinnphongshader_shadow(prefix + "shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
+    Shader gbuffershader(prefix + "shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
+    Shader deferredrendershader(prefix + "shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
+    Shader objshader(prefix + "shader/objshader.vs", prefix + "shader/objshader.fs");    
 
     // Shallow water equation, simulation
-    Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
-    Shader swe_init_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_init_shader.fs");
-    Shader swe_v_advect_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_advect_shader.fs");
-    Shader swe_h_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_h_int_shader.fs");
-    Shader swe_v_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_int_shader.fs");
-    Shader swe_writebuffer_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_writebuffer_shader.fs");
+    Shader fluidsimulationshader(prefix + "shader/fluidsimulationshader.vs", prefix + "shader/fluidsimulationshader.fs");
+    Shader swe_init_shader(prefix + "shader/swe/simulation/swe_shader.vs", prefix + "shader/swe/simulation/swe_init_shader.fs");
+    Shader swe_v_advect_shader(prefix + "shader/swe/simulation/swe_shader.vs", prefix + "shader/swe/simulation/swe_v_advect_shader.fs");
+    Shader swe_h_int_shader(prefix + "shader/swe/simulation/swe_shader.vs", prefix + "shader/swe/simulation/swe_h_int_shader.fs");
+    Shader swe_v_int_shader(prefix + "shader/swe/simulation/swe_shader.vs", prefix + "shader/swe/simulation/swe_v_int_shader.fs");
+    Shader swe_writebuffer_shader(prefix + "shader/swe/simulation/swe_shader.vs", prefix + "shader/swe/simulation/swe_writebuffer_shader.fs");
 
     // Shallow water equation, rendering
-    Shader heightshader(prefix + "/shader/swe/rendering/heightshader.vs", prefix + "/shader/swe/rendering/heightshader_phong.fs");
+    Shader heightshader(prefix + "shader/swe/rendering/heightshader.vs", prefix + "shader/swe/rendering/heightshader_phong.fs");
 
     // Screen space ambient occlusion shader
-    Shader ssaoshader(prefix + "/shader/ssao/ssaoshader.vs", prefix + "/shader/ssao/ssaoshader.fs");
-    Shader ssaoblurshader(prefix + "/shader/ssao/ssaoblurshader.vs", prefix + "/shader/ssao/ssaoblurshader.fs");
-    Shader inv_ssaoshader(prefix + "/shader/ssao/inv_ssaoshader.vs", prefix + "/shader/ssao/inv_ssaoshader.fs");
+    Shader ssaoshader(prefix + "shader/ssao/ssaoshader.vs", prefix + "shader/ssao/ssaoshader.fs");
+    Shader ssaoblurshader(prefix + "shader/ssao/ssaoblurshader.vs", prefix + "shader/ssao/ssaoblurshader.fs");
+    Shader inv_ssaoshader(prefix + "shader/ssao/inv_ssaoshader.vs", prefix + "shader/ssao/inv_ssaoshader.fs");
     
     // Screen space scattering shader
-    Shader sss_shader(prefix + "/shader/sss/sss_shader.vs", prefix + "/shader/sss/sss_shader.fs");
+    Shader sss_shader(prefix + "shader/sss/sss_shader.vs", prefix + "shader/sss/sss_shader.fs");
     
     // Determine light position
     // ------------------------
@@ -165,52 +165,22 @@ int main()
     // subsurface scattering cube
     polyhedron_list.emplace_back(Cube(SemiTransparent, glm::vec3(6.0f, 1.0f, 8.0f)));
     
-    // Light 2
-    cube_model = glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 1.0f, 7.0f));
-    cubes.addObject(cube_model, texture_cube, true, true);
-    
     // light
-    cube_model = glm::translate(glm::mat4(1.0f), light.Position);
-    cube_model = glm::scale(cube_model, glm::vec3(0.5f, 0.5f, 0.5f));
-    cubes.addObject(cube_model, 0, false);
+    polyhedron_list.emplace_back(light);
     
     // floor
-    glm::mat4 floor_model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    floor_model = glm::rotate(floor_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    floor_model = glm::scale(floor_model, glm::vec3(10.0f, 10.0f, 10.0f));
-    quads.addObject(floor_model, texture_floor);
+    polyhedron_list.emplace_back(Quad(Normal, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::radians(-90.0f), 1.0f));
     
     // mirror
-    // glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.5f, -0.95f, 1.0f));
-    glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.7f, -0.95f, 1.0f));
-    mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
-    // quads.addObject(mirror_model, 0, true, true);
+    polyhedron_list.emplace_back(Quad(Mirror, glm::vec3(-2.7f, -0.95f, 1.0f), glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::radians(-90.0f), 1.0f));
     
     // Fluid height
-    glm::mat4 height_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
-    height_model = glm::rotate(height_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    height_model = glm::scale(height_model, glm::vec3(1.0f, 1.0f, 1.0f));
-    quads.addObject(height_model, 0);
-    
-    // Mesh
-    //Meshes meshes(1, 1, 0.05);
-    Meshes meshes(1, 1, 0.01);
-    glm::mat4 mesh_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
-    mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mesh_model = glm::scale(mesh_model, glm::vec3(6.0f, 6.0f, 6.0f));
-    meshes.addObject(mesh_model, 0);
+    polyhedron_list.emplace_back(Mesh(Water, glm::vec3(-5.0f, 0.0f, -5.0f), glm::vec3(6.0f, 6.0f, 6.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::radians(-90.0f), 1.0f, 1.0f, 0.01f));
     
     // load models
     // -----------
     std::vector<Model> models;
-//    models.emplace_back(prefix + "media/Sponza/glTF/Sponza.gltf");
-    // stbi_set_flip_vertically_on_load(true);
-//    Model ourModel(prefix + "media/medieval_town/medieval_house_1/scene.gltf");
-//    Model ourModel(prefix + "media/Sponza/glTF/Sponza.gltf");
-    //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
-
-    ModelData model_data = load_json();
+    std::shared_ptr<ModelData> model_data = json_load_model("../settings/medieval_town_1.json");
     models.emplace_back(prefix + model_data.gltf_path);
 
     // Generate sample kernel for ssao
@@ -347,7 +317,7 @@ int main()
     screenshader.setInt("screenTexture", 0);
     // -----------------
     glm::mat4 lightProjection = glm::perspective((float)glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 1.0f, 40.0f);
-    glm::mat4 lightView = glm::lookAt(light.Position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 lightView = glm::lookAt(light.position, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     depthmapshader.use();
     depthmapshader.setMat4f("lightProjection", lightProjection);
     depthmapshader.setMat4f("lightView", lightView);
@@ -361,7 +331,7 @@ int main()
     gbuffershader.use();
     gbuffershader.setInt("texture_diffuse1", 0);
     gbuffershader.setInt("shadowMap", 1);
-    gbuffershader.setVec3f("lightPos", light.Position);
+    gbuffershader.setVec3f("lightPos", light.position);
     gbuffershader.setMat4f("lightProjection", lightProjection);
     gbuffershader.setMat4f("lightView", lightView);
     // -----------------
@@ -417,9 +387,13 @@ int main()
         gbuffershader.setInt("imgui_shadowtype", myimgui.shadowtype);
         glm::mat4 view = ourcamera.GetViewMatrix();
         
-        gbuffershader.setMVP(cubes.models[0], view);
+        gbuffershader.setMVP(polyhedron_list[0].model_mat, view);
         
         // Render cube
+        for (Polyhedron& polyhedron : polyhedron_list) {
+            polyhedron.render();
+        }
+
         for (int i = 0; i < cubes.num; i++) {
             if (cubes.textures[i] > 0) {
                 gbuffershader.setModelMat(cubes.models[i]);

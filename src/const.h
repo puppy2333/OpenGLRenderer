@@ -28,7 +28,8 @@ enum ObjectType {
     Normal,
     Mirror,
     SemiTransparent,
-    Light
+    Light,
+    Water
 };
 
 #endif /* const_h */
