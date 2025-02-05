@@ -31,8 +31,8 @@
 *.out
 *.app
 
-*.jpg
-*.png
+# *.jpg
+# *.png
 *.xcodeproj
 *.DS_Store
 
@@ -40,5 +40,6 @@ cmake-build-debug/
 build/
 .idea/
 media/
-/demo/
+demo/
+*.mp4
 .vscode/
