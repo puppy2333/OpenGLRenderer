@@ -96,7 +96,7 @@ int main()
     // Set prefix
     // ----------
 #ifdef __APPLE__
-    std::string prefix = "../";
+    std::filesystem::path prefix = std::filesystem::path("../");
     // For Xcode project
     // std::string prefix = "/Users/zhouxch/Playground/opengl_skybox/opengl_test/";
 #else
@@ -110,32 +110,33 @@ int main()
     // build and compile our shader programs
     // -------------------------------------
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
-    Shader lightshader(prefix + "shader/lightshader.vs", prefix + "shader/lightshader.fs");
-    Shader screenshader(prefix + "/shader/screenshader.vs", prefix + "shader/screenshader.fs");
-    Shader depthmapshader(prefix + "/shader/shadow_map/depthmapshader.vs", prefix + "shader/shadow_map/depthmapshader.fs");
-    Shader blinnphongshader_shadow(prefix + "/shader/blinnphongshader_shadow.vs", prefix + "shader/blinnphongshader_shadow.fs");
-    Shader gbuffershader(prefix + "/shader/gbuffershader.vs", prefix + "shader/gbuffershader.fs");
-    Shader deferredrendershader(prefix + "/shader/deferredrendershader.vs", prefix + "shader/deferredrendershader.fs");
-    Shader objshader(prefix + "/shader/objshader.vs", prefix + "/shader/objshader.fs");    
+
+    Shader lightshader(prefix / "shader" / "lightshader.vs", prefix / "shader" / "lightshader.fs");
+    Shader screenshader(prefix / "shader" / "screenshader.vs", prefix / "shader" / "screenshader.fs");
+    Shader depthmapshader(prefix / "shader" / "shadow_map" / "depthmapshader.vs", prefix / "shader" / "shadow_map" / "depthmapshader.fs");
+    Shader blinnphongshader_shadow(prefix / "shader" / "blinnphongshader_shadow.vs", prefix / "shader" / "blinnphongshader_shadow.fs");
+    Shader gbuffershader(prefix / "shader" / "gbuffershader.vs", prefix / "shader" / "gbuffershader.fs");
+    Shader deferredrendershader(prefix / "shader" / "deferredrendershader.vs", prefix / "shader" / "deferredrendershader.fs");
+    Shader objshader(prefix / "shader" / "objshader.vs", prefix / "shader" / "objshader.fs");
 
     // Shallow water equation, simulation
-    Shader fluidsimulationshader(prefix + "/shader/fluidsimulationshader.vs", prefix + "/shader/fluidsimulationshader.fs");
-    Shader swe_init_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_init_shader.fs");
-    Shader swe_v_advect_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_advect_shader.fs");
-    Shader swe_h_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_h_int_shader.fs");
-    Shader swe_v_int_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_v_int_shader.fs");
-    Shader swe_writebuffer_shader(prefix + "/shader/swe/simulation/swe_shader.vs", prefix + "/shader/swe/simulation/swe_writebuffer_shader.fs");
+    Shader fluidsimulationshader(prefix / "shader" / "fluidsimulationshader.vs", prefix / "shader" / "fluidsimulationshader.fs");
+    Shader swe_init_shader(prefix / "shader" / "swe" / "simulation" / "swe_shader.vs", prefix / "shader" / "swe" / "simulation" / "swe_init_shader.fs");
+    Shader swe_v_advect_shader(prefix / "shader" / "swe" / "simulation" / "swe_shader.vs", prefix / "shader" / "swe" / "simulation" / "swe_v_advect_shader.fs");
+    Shader swe_h_int_shader(prefix / "shader" / "swe" / "simulation" / "swe_shader.vs", prefix / "shader" / "swe" / "simulation" / "swe_h_int_shader.fs");
+    Shader swe_v_int_shader(prefix / "shader" / "swe" / "simulation" / "swe_shader.vs", prefix / "shader" / "swe" / "simulation" / "swe_v_int_shader.fs");
+    Shader swe_writebuffer_shader(prefix / "shader" / "swe" / "simulation" / "swe_shader.vs", prefix / "shader" / "swe" / "simulation" / "swe_writebuffer_shader.fs");
 
     // Shallow water equation, rendering
-    Shader heightshader(prefix + "/shader/swe/rendering/heightshader.vs", prefix + "/shader/swe/rendering/heightshader_phong.fs");
+    Shader heightshader(prefix / "shader" / "swe" / "rendering" / "heightshader.vs", prefix / "shader" / "swe" / "rendering" / "heightshader_phong.fs");
 
     // Screen space ambient occlusion shader
-    Shader ssaoshader(prefix + "/shader/ssao/ssaoshader.vs", prefix + "/shader/ssao/ssaoshader.fs");
-    Shader ssaoblurshader(prefix + "/shader/ssao/ssaoblurshader.vs", prefix + "/shader/ssao/ssaoblurshader.fs");
-    Shader inv_ssaoshader(prefix + "/shader/ssao/inv_ssaoshader.vs", prefix + "/shader/ssao/inv_ssaoshader.fs");
-    
+    Shader ssaoshader(prefix / "shader" / "ssao" / "ssaoshader.vs", prefix / "shader" / "ssao" / "ssaoshader.fs");
+    Shader ssaoblurshader(prefix / "shader" / "ssao" / "ssaoblurshader.vs", prefix / "shader" / "ssao" / "ssaoblurshader.fs");
+    Shader inv_ssaoshader(prefix / "shader" / "ssao" / "inv_ssaoshader.vs", prefix / "shader" / "ssao" / "inv_ssaoshader.fs");
+
     // Screen space scattering shader
-    Shader sss_shader(prefix + "/shader/sss/sss_shader.vs", prefix + "/shader/sss/sss_shader.fs");
+    Shader sss_shader(prefix / "shader" / "sss" / "sss_shader.vs", prefix / "shader" / "sss" / "sss_shader.fs");
     
     // Determine light position
     // ------------------------
@@ -147,9 +148,9 @@ int main()
     
     // Generate texture
     // ----------------
-    unsigned int texture_cube = genTexture(prefix + "media/materials/container2.png", GL_CLAMP_TO_EDGE);
+    unsigned int texture_cube = genTexture(prefix / "media" / "materials" / "container2.png", GL_CLAMP_TO_EDGE);
     // unsigned int texture_floor = genTexture(prefix + "media/material/wall.jpg", GL_REPEAT);
-    unsigned int texture_floor = genTexture(prefix + "media/materials/Asphalt031_4K-JPG/Asphalt031_4K-JPG_Color.jpg", GL_REPEAT);
+    unsigned int texture_floor = genTexture(prefix / + "media" / "materials" / "Asphalt031_4K-JPG/Asphalt031_4K-JPG_Color.jpg", GL_REPEAT);
 
     // Generate objects
     // ----------------
@@ -216,7 +217,7 @@ int main()
     //Model ourModel(prefix + "media/sculpture/the_thinker_by_auguste_rodin/scene.gltf");
 
     ModelData model_data = load_json();
-    models.emplace_back(prefix + model_data.gltf_path);
+    models.emplace_back(prefix.string() + model_data.gltf_path);
 
     // Generate sample kernel for ssao
     // -–-----------------------------

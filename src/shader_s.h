@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <filesystem>
 
 #include "const.h"
 
@@ -23,7 +24,7 @@ public:
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-    Shader(std::string vertexPath, std::string fragmentPath)
+    Shader(std::filesystem::path vertexPath, std::filesystem::path fragmentPath)
     {
         // 1. retrieve the vertex/fragment source code from filePath
         std::string vertexCode;

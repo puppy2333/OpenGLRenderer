@@ -8,7 +8,7 @@
 #ifndef texture_h
 #define texture_h
 
-unsigned int genTexture(std::string path, GLenum handle_edge)
+unsigned int genTexture(std::filesystem::path path, GLenum handle_edge)
 {
     unsigned int texture;
     glGenTextures(1, &texture);
