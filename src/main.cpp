@@ -67,7 +67,7 @@ int main()
     // see https://stackoverflow.com/questions/35715579/opengl-created-window-size-twice-as-large
     // ------------------------------------------------------------------------------------------
 #ifdef __APPLE__
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH + 500, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH + UI_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     // GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 #else
     GLFWwindow* window = glfwCreateWindow(2 * SCR_WIDTH, 2 * SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
