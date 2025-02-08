@@ -97,8 +97,8 @@ public:
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
 #ifdef __APPLE__
-        ImGui::SetNextWindowPos(ImVec2(10, 500));
-        ImGui::SetNextWindowSize(ImVec2(500, 100));
+        ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH, 0));
+        ImGui::SetNextWindowSize(ImVec2(500, SCR_HEIGHT));
 #elif defined(__linux__)
         ImGui::SetNextWindowPos(ImVec2(10, 960));
         ImGui::SetNextWindowSize(ImVec2(600, 220));
@@ -107,6 +107,13 @@ public:
         ImGui::SetNextWindowSize(ImVec2(500, 180));
 #endif
     };
+
+    ~MyImgui()
+    {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
     
     void newframe()
     {
@@ -119,6 +126,9 @@ public:
         // 1. Show the big demo window
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
+
+        ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH, 0));
+        ImGui::SetNextWindowSize(ImVec2(500, SCR_HEIGHT));
 
         ImGui::Begin("Rendering settings", NULL, ImGuiWindowFlags_MenuBar);
 

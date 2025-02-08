@@ -67,7 +67,8 @@ int main()
     // see https://stackoverflow.com/questions/35715579/opengl-created-window-size-twice-as-large
     // ------------------------------------------------------------------------------------------
 #ifdef __APPLE__
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH + 500, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    // GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 #else
     GLFWwindow* window = glfwCreateWindow(2 * SCR_WIDTH, 2 * SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 #endif
@@ -88,6 +89,7 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+    glViewport(0, 0, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
 
     // Setup Dear ImGui context
     // ------------------------
@@ -191,7 +193,7 @@ int main()
     glm::mat4 mirror_model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.7f, -0.95f, 1.0f));
     mirror_model = glm::rotate(mirror_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mirror_model = glm::scale(mirror_model, glm::vec3(4.0f, 4.0f, 4.0f));
-    // quads.addObject(mirror_model, 0, true, true);
+    quads.addObject(mirror_model, 0, true, true);
     
     // Fluid height
     glm::mat4 height_model = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, -5.0f));
@@ -408,6 +410,8 @@ int main()
     }
     inv_ssaoshader.setMat4f("projection", projection);
     
+    // glViewport(0, 0, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
+
     // Lambda function of rendering to gbuffer
     // ---------------------------------------
     auto renderToGbuffer = [&]() {
