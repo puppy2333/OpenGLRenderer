@@ -10,6 +10,9 @@
 
 #include <vector>
 #include <utility>
+#include <cmath>
+
+#include "const.h"
 
 float* getCube();
 float* getCubeWithUV();
@@ -118,6 +121,20 @@ public:
     };
     void _getSkybox();
     void _getVBOVAO() override;
+};
+
+class Spheres: public Objects
+{
+public:
+    unsigned int EBO;
+    unsigned int index_count;
+
+    Spheres() {
+        _getSphereWithUV();
+    };
+    void _getSphereWithUV();
+    // void _getVBOVAO() override;
+    void render() override;
 };
 
 void Cubes::_getVBOVAO()
@@ -467,5 +484,84 @@ void Skyboxes::_getSkybox()
     };
 }
 
+void Spheres::_getSphereWithUV()
+{
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec2> uv;
+    std::vector<glm::vec3> normals;
+    std::vector<unsigned int> indices;
+
+    const unsigned int X_SEGMENTS = 64;
+    const unsigned int Y_SEGMENTS = 64;
+    for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+    {
+        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+        {
+            float xSegment = (float)x / (float)X_SEGMENTS;
+            float ySegment = (float)y / (float)Y_SEGMENTS;
+            float xPos = std::cos(xSegment * 2.0f * pi) * std::sin(ySegment * pi);
+            float yPos = std::cos(ySegment * pi);
+            float zPos = std::sin(xSegment * 2.0f * pi) * std::sin(ySegment * pi);
+
+            positions.push_back(glm::vec3(xPos, yPos, zPos));
+            uv.push_back(glm::vec2(xSegment, ySegment));
+            normals.push_back(glm::vec3(xPos, yPos, zPos));
+        }
+    }
+
+    // bool oddRow = false;
+    for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+    {
+        if (y % 2 == 0) {
+            for (unsigned int x = 0; x <= X_SEGMENTS; ++x) {
+                indices.push_back(y       * (X_SEGMENTS + 1) + x);
+                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+            }
+        }
+        else {
+            for (int x = X_SEGMENTS; x >= 0; --x) {
+                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                indices.push_back(y       * (X_SEGMENTS + 1) + x);
+            }
+        }
+    }
+    index_count = static_cast<unsigned int>(indices.size());
+
+    std::vector<float> data;
+    for (unsigned int i = 0; i < positions.size(); ++i) {
+        data.push_back(positions[i].x);
+        data.push_back(positions[i].y);
+        data.push_back(positions[i].z);
+        data.push_back(normals[i].x);
+        data.push_back(normals[i].y);
+        data.push_back(normals[i].z);
+        data.push_back(uv[i].x);
+        data.push_back(uv[i].y);
+    }
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+    unsigned int stride = (3 + 2 + 3) * sizeof(float);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(1);        
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));        
+
+}
+
+void Spheres::render()
+{
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLE_STRIP, this->index_count, GL_UNSIGNED_INT, 0);
+}
 
 #endif /* objects_h */

@@ -25,4 +25,7 @@ bool firstMouse = true;
 
 bool init_wave = false;
 
+// C++ 20 has support for pi
+constexpr double pi = 3.14159265358979323846;
+
 #endif /* const_h */

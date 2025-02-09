@@ -54,7 +54,7 @@ public:
     };
 
     // List of render options
-    const char* rendertype_list[8] = {
+    const char* rendertype_list[9] = {
             "direct lightning",
             "screen space reflection",
             "DEBUG: vis ssao",
@@ -63,6 +63,7 @@ public:
             "shallow water equation",
             "DEBUG: vis inverse ssao",
             "subsurface scattering",
+            "physically based rendering"
     };
     
     MyImgui(GLFWwindow* window, bool in_show_demo_window=false, 

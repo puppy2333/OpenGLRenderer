@@ -140,9 +140,13 @@ int main()
     // Screen space scattering shader
     Shader sss_shader(prefix / "shader" / "sss" / "sss_shader.vs", prefix / "shader" / "sss" / "sss_shader.fs");
     
+    // Physics based rendering shader
+    Shader pbr_shader(prefix / "shader" / "pbr" / "pbr.vs", prefix / "shader" / "pbr" / "pbr.fs");
+
     // Determine light position
     // ------------------------
-    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
+    // Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(-4.0f, 8.0f, -6.0f));
+    Light light("light", glm::vec3(0.2, 0.2, 0.2), glm::vec3(1.0, 1.0, 1.0), glm::vec3(0.5, 0.5, 0.5), glm::vec3(0.0f, 0.0f, 5.0f));
     blinnphongshader_shadow.use();
     blinnphongshader_shadow.setVec3f("lightPos", light.Position);
     heightshader.use();
@@ -208,6 +212,15 @@ int main()
     mesh_model = glm::rotate(mesh_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mesh_model = glm::scale(mesh_model, glm::vec3(6.0f, 6.0f, 6.0f));
     meshes.addObject(mesh_model, 0);
+
+    // Sphere
+    Spheres spheres;
+    for (int x = 0; x < 10; x+=2) {
+        for (int y = 0; y < 10; y+=2) {
+            glm::mat4 sphere_model = glm::translate(glm::mat4(1.0f), glm::vec3(x-5, y-5, 0.0f));
+            spheres.addObject(sphere_model, 0);
+        }
+    }
     
     // load models
     // -----------
@@ -409,6 +422,13 @@ int main()
         inv_ssaoshader.setVec3f("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
     }
     inv_ssaoshader.setMat4f("projection", projection);
+    // -----------------
+    pbr_shader.use();
+    pbr_shader.setVec3f("light_pos", light.Position);
+    pbr_shader.setVec3f("light_color", glm::vec3(100.0f, 100.0f, 100.0f));
+    // Set material properties
+    pbr_shader.setVec3f("albedo", glm::vec3(1.0f, 0.0f, 0.0f));
+    pbr_shader.setFloat("ao", 1.0f);
     
     // glViewport(0, 0, 2 * SCR_WIDTH, 2 * SCR_HEIGHT);
 
@@ -911,7 +931,28 @@ int main()
             glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
             cubes.render();
         }
-        
+        // Physically based rendering
+        // --------------------------
+        else if (myimgui.rendertype == 8) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            
+            glEnable(GL_DEPTH_TEST);
+            
+            pbr_shader.use();
+            pbr_shader.setVec3f("cam_pos", ourcamera.Position);
+            
+            // Render sphere
+            for (int x = 0; x < 5; x++) {
+                for (int y = 0; y < 5; y++) {
+                    pbr_shader.setMVP(spheres.models[y * 5 + x], view);
+                    pbr_shader.setFloat("metallic", (float)(x+1) / 5.0f);
+                    pbr_shader.setFloat("roughness", (float)(y+1) / 5.0f);
+                    spheres.render();
+                }
+            }
+        }
         // Start the Dear ImGui frame
         // --------------------------
         myimgui.newframe();
